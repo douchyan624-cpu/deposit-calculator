@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>儲值滿額贈計算工具</title>
+    <meta name="description" content="儲值滿額贈驗算工具，支援多活動設定、VIP品項對照、加贈計算與儲值紀錄">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header id="app-header">
+        <div class="header-content">
+            <h1>💎 儲值滿額贈計算工具</h1>
+            <p class="subtitle">驗算儲值金額與道具獲得數量</p>
+        </div>
+    </header>
+
+    <main id="app-main">
+        <!-- Activity Bar -->
+        <section id="activity-bar" class="card">
+            <div class="activity-controls">
+                <div class="activity-select-group">
+                    <label for="activity-select">目前活動</label>
+                    <!-- Custom Select Wrapper -->
+                    <div class="custom-select-wrapper" id="activity-select-wrapper">
+                        <div class="custom-select-display" id="activity-select-display" tabindex="0" role="combobox"
+                            aria-haspopup="listbox" aria-expanded="false">
+                            <span class="custom-select-text" id="activity-select-text">— 請先新增活動 —</span>
+                            <span class="custom-select-arrow">▾</span>
+                        </div>
+                        <div class="custom-select-dropdown" id="activity-select-dropdown" role="listbox">
+                            <div class="custom-select-option" data-value="" role="option">— 請先新增活動 —</div>
+                        </div>
+                        <!-- Hidden real select for form compatibility -->
+                        <select id="activity-select" style="display:none"></select>
+                    </div>
+                </div>
+                <div class="activity-buttons">
+                    <button id="btn-new-activity" class="btn btn-primary">
+                        <span class="btn-icon">+</span> 新增活動
+                    </button>
+                    <button id="btn-edit-activity" class="btn btn-secondary">✏️ 編輯</button>
+                    <button id="btn-delete-activity" class="btn btn-danger">🗑️ 刪除</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- No Activity Placeholder -->
+        <div id="no-activity-placeholder" class="empty-hero" style="display:none">
+            <div class="empty-hero-icon">🎮</div>
+            <h2>尚未建立活動</h2>
+            <p>點擊「新增活動」開始設定你的第一個儲值活動</p>
+        </div>
+
+        <div class="main-grid" id="main-content" style="display:none">
+            <!-- Left Column: Settings -->
+            <aside id="settings-column">
+                <!-- Threshold Settings -->
+                <section class="card" id="threshold-card">
+                    <h2 class="card-title">⚙️ 滿額門檻</h2>
+                    <div class="setting-row">
+                        <label for="threshold-amount">每累計儲值</label>
+                        <div class="input-with-unit">
+                            <input type="number" id="threshold-amount" min="1" value="1000" class="input-field no-spin">
+                            <span class="unit">元</span>
+                        </div>
+                        <span class="setting-hint">送 1 個道具</span>
+                    </div>
+                </section>
+
+                <!-- Player State -->
+                <section class="card" id="player-card">
+                    <h2 class="card-title">👤 玩家初始狀態</h2>
+                    <div class="setting-row">
+                        <label for="initial-assets">當前財產</label>
+                        <input type="number" id="initial-assets" min="0" value="0" class="input-field no-spin">
+                    </div>
+                    <div class="setting-row">
+                        <label for="initial-items">當前道具數</label>
+                        <input type="number" id="initial-items" min="0" value="0" class="input-field no-spin">
+                    </div>
+                </section>
+
+                <!-- Game / VIP / Platform Selection -->
+                <section class="card" id="vip-card">
+                    <h2 class="card-title">🎖️ 遊戲 / VIP / 平台</h2>
+                    <div class="setting-row">
+                        <label for="game-select">遊戲</label>
+                        <select id="game-select" class="input-field styled-select">
+                            <option value="game_a">滿貫大亨</option>
+                            <option value="mahjong2">競技麻將2</option>
+                        </select>
+                    </div>
+                    <!-- VIP row: 滿貫大亨顯示，競技麻將2隱藏 -->
+                    <div class="setting-row" id="vip-level-row">
+                        <label for="vip-select">VIP 等級</label>
+                        <select id="vip-select" class="input-field styled-select">
+                            <option value="0">VIP 0</option>
+                            <option value="1">VIP 1</option>
+                            <option value="2">VIP 2</option>
+                            <option value="3">VIP 3</option>
+                            <option value="4">VIP 4</option>
+                            <option value="5">VIP 5</option>
+                            <option value="6">VIP 6</option>
+                        </select>
+                    </div>
+                    <!-- Platform row: 滿貫大亨顯示，競技麻將2隱藏 -->
+                    <div class="setting-row" id="platform-row">
+                        <label for="platform-select">平台</label>
+                        <select id="platform-select" class="input-field styled-select">
+                            <option value="win_apk">WIN / APK</option>
+                            <option value="android">安卓</option>
+                            <option value="ios">iOS</option>
+                            <option value="ios_white">iOS白</option>
+                        </select>
+                    </div>
+                    <!-- 儲值項目 row: 競技麻將2專用，替代VIP/平台 -->
+                    <div class="setting-row" id="deposit-type-row" style="display:none">
+                        <label for="deposit-type-select">儲值項目</label>
+                        <select id="deposit-type-select" class="input-field styled-select">
+                            <option value="coins">金幣</option>
+                            <option value="diamonds">鑽石</option>
+                        </select>
+                    </div>
+                </section>
+
+                <!-- Bonus Config -->
+                <section class="card" id="bonus-config-card">
+                    <h2 class="card-title">🎁 品項加贈設定</h2>
+                    <p class="card-hint">點擊 ⚙ 設定各品項的加贈內容</p>
+                    <div id="bonus-config-list"></div>
+                </section>
+            </aside>
+
+            <!-- Right Column: Deposit & Records -->
+            <div id="main-column">
+                <!-- Current Status Summary -->
+                <section class="card" id="status-card">
+                    <h2 class="card-title">📊 當前狀態</h2>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="status-label">當前財產</span>
+                            <span class="status-value" id="current-assets-display">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">累計儲值</span>
+                            <span class="status-value" id="cumulative-deposit-display">0</span>
+                        </div>
+                        <div class="status-item warning">
+                            <span class="status-label">距下個滿額還差</span>
+                            <span class="status-value" id="next-milestone-display">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">滿額贈道具</span>
+                            <span class="status-value" id="milestone-items-display">0</span>
+                        </div>
+                        <div class="status-item accent">
+                            <span class="status-label">總道具數</span>
+                            <span class="status-value highlight" id="total-items-display">0</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Deposit Buttons -->
+                <section class="card" id="deposit-card">
+                    <div class="deposit-card-header">
+                        <h2 class="card-title">💰 儲值操作</h2>
+                        <span class="currency-note" id="currency-note"></span>
+                    </div>
+                    <div id="deposit-buttons" class="deposit-grid"></div>
+                    <div class="custom-deposit">
+                        <input type="number" id="custom-amount" placeholder="自訂金額" class="input-field no-spin" min="1">
+                        <button id="btn-custom-deposit" class="btn btn-primary">儲值</button>
+                    </div>
+                </section>
+
+                <!-- Records Table -->
+                <section class="card" id="records-card">
+                    <div class="records-header">
+                        <h2 class="card-title">📋 儲值紀錄</h2>
+                        <div class="records-actions">
+                            <button id="btn-delete-selected" class="btn btn-sm btn-danger" disabled>🗑️ 刪除選取</button>
+                            <button id="btn-undo" class="btn btn-sm btn-secondary" disabled>↩️ 復原</button>
+                            <button id="btn-clear" class="btn btn-sm btn-danger" disabled>🗑️ 清除全部</button>
+                        </div>
+                    </div>
+                    <div class="table-container" id="table-wrapper">
+                        <table id="record-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-check">
+                                        <input type="checkbox" id="select-all-records" title="全選">
+                                    </th>
+                                    <th>#</th>
+                                    <th>儲值金額</th>
+                                    <th>加贈財產</th>
+                                    <th>加贈道具</th>
+                                    <th>儲值後財產</th>
+                                    <th>累計儲值</th>
+                                    <th>本筆新增<br>滿額道具</th>
+                                    <th>滿額贈<br>道具(累計)</th>
+                                    <th>總道具數</th>
+                                </tr>
+                            </thead>
+                            <tbody id="record-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="empty-records" class="empty-state">
+                        <p>📝 尚無儲值紀錄</p>
+                        <p class="hint">選擇上方的儲值金額開始記錄</p>
+                    </div>
+                    <!-- Pagination -->
+                    <div id="pagination-bar" class="pagination-bar" style="display:none">
+                        <button id="btn-page-first" class="page-btn" title="第一頁">«</button>
+                        <button id="btn-page-prev" class="page-btn" title="上一頁">‹</button>
+                        <div id="page-numbers" class="page-numbers"></div>
+                        <button id="btn-page-next" class="page-btn" title="下一頁">›</button>
+                        <button id="btn-page-last" class="page-btn" title="最後頁">»</button>
+                        <span class="page-info" id="page-info"></span>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bonus Config Modal -->
+    <div id="bonus-modal" class="modal-overlay" style="display:none">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>🎁 設定品項加贈 — <span id="bonus-modal-amount"></span> 元</h3>
+                <button class="modal-close" id="bonus-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <fieldset class="bonus-fieldset">
+                    <legend>💰 加贈財產</legend>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="asset-bonus-type" value="none" checked>
+                            <span class="radio-text">無加贈</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="asset-bonus-type" value="ratio">
+                            <span class="radio-text">依比例 (%)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="asset-bonus-type" value="fixed">
+                            <span class="radio-text">固定金額</span>
+                        </label>
+                    </div>
+                    <div id="asset-bonus-value-group" class="bonus-value-group" style="display:none">
+                        <div class="input-with-unit">
+                            <input type="number" id="asset-bonus-value" class="input-field no-spin" min="0" step="any"
+                                value="0">
+                            <span class="unit" id="asset-bonus-unit">%</span>
+                        </div>
+                        <p class="bonus-preview" id="asset-bonus-preview"></p>
+                    </div>
+                </fieldset>
+                <fieldset class="bonus-fieldset">
+                    <legend>🎲 加贈道具</legend>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="item-bonus-type" value="none" checked>
+                            <span class="radio-text">無加贈</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="item-bonus-type" value="fixed">
+                            <span class="radio-text">固定數量</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="item-bonus-type" value="range">
+                            <span class="radio-text">隨機區間</span>
+                        </label>
+                    </div>
+                    <div id="item-bonus-fixed-group" class="bonus-value-group" style="display:none">
+                        <div class="input-with-unit">
+                            <input type="number" id="item-bonus-fixed" class="input-field no-spin" min="0" value="0">
+                            <span class="unit">個</span>
+                        </div>
+                    </div>
+                    <div id="item-bonus-range-group" class="bonus-value-group" style="display:none">
+                        <div class="range-inputs">
+                            <div class="input-with-unit">
+                                <label>最少</label>
+                                <input type="number" id="item-bonus-min" class="input-field no-spin" min="0" value="0">
+                                <span class="unit">個</span>
+                            </div>
+                            <span class="range-separator">~</span>
+                            <div class="input-with-unit">
+                                <label>最多</label>
+                                <input type="number" id="item-bonus-max" class="input-field no-spin" min="0" value="0">
+                                <span class="unit">個</span>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="modal-footer">
+                <button id="bonus-modal-save" class="btn btn-primary">💾 儲存</button>
+                <button id="bonus-modal-cancel" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New / Edit Activity Modal -->
+    <div id="activity-modal" class="modal-overlay" style="display:none">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3 id="activity-modal-title">新增活動</h3>
+                <button class="modal-close" id="activity-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-row">
+                    <label for="activity-name-input">活動名稱</label>
+                    <input type="text" id="activity-name-input" class="input-field" placeholder="例如：春節儲值活動">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="activity-modal-save" class="btn btn-primary">確認</button>
+                <button id="activity-modal-cancel" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Range Item Bonus Input Modal -->
+    <div id="range-input-modal" class="modal-overlay" style="display:none">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3>🎲 輸入加贈道具數量</h3>
+            </div>
+            <div class="modal-body">
+                <p class="range-info">此品項的加贈道具為隨機區間：<strong id="range-display"></strong></p>
+                <div class="setting-row">
+                    <label for="range-actual-input">實際獲得數量</label>
+                    <input type="number" id="range-actual-input" class="input-field no-spin" min="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="range-input-confirm" class="btn btn-primary">確認儲值</button>
+                <button id="range-input-cancel" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="confirm-modal" class="modal-overlay" style="display:none">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3>⚠️ 確認刪除</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirm-yes" class="btn btn-danger">確認刪除</button>
+                <button id="confirm-no" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
