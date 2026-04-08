@@ -1,11 +1,7 @@
 /* ============================================
-   儲值滿額贈計算工具 - 核心邏輯 v2
+   儲值滿額贈計算工具 - 核心邏輯 v3 (Refactored)
    ============================================ */
 
-// ===== 1. VIP 品項資料定義 =====
-// 結構：GAME_VIP_DATA[遊戲][平台][VIP等級] = [金額陣列]
-// 若 noVip: true，代表此遊戲不分VIP等級（所有等級品項相同）
-// 若 noPlatformDiff: true，代表此遊戲各平台品項相同
 const GAME_VIP_DATA = {
     game_a: {
         label: '大滿貫（紅鑽）',
@@ -61,16 +57,11 @@ const GAME_VIP_DATA = {
             },
         },
     },
-
-    // ── 競技麻將2：不分VIP等級，各平台品項相同 ──
-    // 儲值金額 → 金幣（x1,000,000）+ 鑽石（x1）
     mahjong2: {
-        label: '競技麻將2（金幣/鑽石）',
-        currencyNote: '儲值後獲得金幣（×1,000,000）及等量鑽石',
-        noVip: true,           // 不分VIP，VIP選單僅供參考
-        noPlatformDiff: true,  // 各平台品項相同
-        // 每筆儲值金額（幣別不分，統一列出）
-        // 金幣獲得量 = 金額 × 1,000,000；鑽石獲得量 = 金額
+        label: '競技麻將2（鑽石/金幣）',
+        currencyNote: '儲值後獲得對應品項',
+        noVip: true,
+        noPlatformDiff: true,
         depositItemMeta: [
             { amount: 70, coins: 70000000, diamonds: 70 },
             { amount: 170, coins: 170000000, diamonds: 170 },
@@ -89,9 +80,21 @@ const GAME_VIP_DATA = {
             ios_white: { label: 'iOS白', vip: _mahjong2Vip() },
         },
     },
+    star_3_in_1: {
+        label: '明星三缺一（紅利點數）',
+        currencyNote: '紅利點數已於遊戲內獲得',
+        noVip: true,
+        noPlatformDiff: true,
+        depositItemMeta: [], // 儲值品項待提供
+        platforms: {
+            win_apk: { label: 'WIN / APK', vip: { 0: [] } },
+            android: { label: '安卓', vip: { 0: [] } },
+            ios: { label: 'iOS', vip: { 0: [] } },
+            ios_white: { label: 'iOS白', vip: { 0: [] } },
+        },
+    },
 };
 
-// 幫競技麻將2生成 VIP 0~6 全部相同品項
 function _mahjong2Vip() {
     const amounts = [70, 170, 330, 490, 670, 990, 1690, 2490, 3290];
     const vipObj = {};
@@ -99,32 +102,15 @@ function _mahjong2Vip() {
     return vipObj;
 }
 
-// 取得遊戲資訊（label、currencyNote 等）
-function getGameInfo(game) {
-    return GAME_VIP_DATA[game] || null;
-}
+const STORAGE_KEY = 'deposit_calculator_data_v3';
 
-// 取得存款品項的 meta（競技麻將2 等有特殊 meta 的遊戲）
-function getDepositItemMeta(game, amount) {
-    const items = GAME_VIP_DATA[game]?.depositItemMeta;
-    if (!items) return null;
-    return items.find(m => m.amount === amount) || null;
-}
-
-function getAmounts(game, platform, vipLevel) {
-    return GAME_VIP_DATA[game]?.platforms?.[platform]?.vip?.[vipLevel] || [];
-}
-
-const STORAGE_KEY = 'deposit_calculator_data_v2';
-
-// ===== 2. State Management =====
+// ===== 1. State Management =====
 let appState = {
     activities: [],
     currentActivityId: null,
     sessions: {},
 };
 
-// Pagination state (not persisted)
 let currentPage = 1;
 const PAGE_SIZE = 20;
 
@@ -132,12 +118,18 @@ function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
 }
 
-function createDefaultActivity(name) {
+function createDefaultActivity(name, game) {
     return {
         id: generateId(),
         name: name,
+        game: game || 'game_a',
         threshold: 1000,
-        bonusConfig: {},
+        enableGlobalBonus: false,
+        globalBonusMin: 0,
+        globalBonusMax: 10,
+        globalBonusStep: 1,
+        enableChannelBonus: false,
+        channelBonusRate: 5,
     };
 }
 
@@ -145,10 +137,9 @@ function createDefaultSession() {
     return {
         initialAssets: 0,
         initialItems: 0,
-        game: 'game_a',
         vipLevel: 0,
         platform: 'win_apk',
-        depositType: 'coins', // 競技麻將2 專用：金幣/鑽石
+        depositType: 'diamonds',
         records: [],
     };
 }
@@ -162,66 +153,26 @@ function getCurrentSession() {
     if (!appState.sessions[appState.currentActivityId]) {
         appState.sessions[appState.currentActivityId] = createDefaultSession();
     }
-    const session = appState.sessions[appState.currentActivityId];
-    // Ensure all fields exist for legacy data
-    if (!session.game) session.game = 'game_a';
-    if (!session.depositType) session.depositType = 'coins';
-    return session;
+    return appState.sessions[appState.currentActivityId];
 }
 
-// ===== 3. Storage (localStorage) =====
+// ===== 2. Storage =====
 function saveState() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-    } catch (e) {
-        console.warn('Failed to save state:', e);
-    }
+    } catch (e) { console.warn('Failed to save state:', e); }
 }
 
 function loadState() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-            const parsed = JSON.parse(raw);
-            appState = {
-                activities: parsed.activities || [],
-                currentActivityId: parsed.currentActivityId || null,
-                sessions: parsed.sessions || {},
-            };
+            appState = JSON.parse(raw);
         }
-    } catch (e) {
-        console.warn('Failed to load state:', e);
-    }
+    } catch (e) { console.warn('Failed to load state:', e); }
 }
 
-// ===== 4. Calculation Functions =====
-function getBonusConfigKey(platform, amount) {
-    return `${platform}_${amount}`;
-}
-
-function getBonusConfig(activity, platform, amount) {
-    const key = getBonusConfigKey(platform, amount);
-    return activity.bonusConfig[key] || {
-        assetBonusType: 'none',
-        assetBonusValue: 0,
-        itemBonusType: 'none',
-        itemBonusFixed: 0,
-        itemBonusMin: 0,
-        itemBonusMax: 0,
-    };
-}
-
-function calculateBonusAssets(depositAmount, bonusConfig) {
-    switch (bonusConfig.assetBonusType) {
-        case 'ratio':
-            return Math.floor(depositAmount * (bonusConfig.assetBonusValue / 100));
-        case 'fixed':
-            return bonusConfig.assetBonusValue || 0;
-        default:
-            return 0;
-    }
-}
-
+// ===== 3. Logic & Calculations =====
 function computeRecords(session, threshold) {
     let cumulativeDeposit = 0;
     let currentAssets = session.initialAssets;
@@ -270,16 +221,13 @@ function formatNumber(n) {
     return Number(n).toLocaleString('zh-TW');
 }
 
-// ===== 5. UI References =====
+// ===== 4. UI References =====
 const $ = (id) => document.getElementById(id);
-
 const els = {
-    // Activity custom select
     activitySelectWrapper: $('activity-select-wrapper'),
     activitySelectDisplay: $('activity-select-display'),
     activitySelectText: $('activity-select-text'),
     activitySelectDropdown: $('activity-select-dropdown'),
-    activitySelect: $('activity-select'), // hidden real select
 
     btnNewActivity: $('btn-new-activity'),
     btnEditActivity: $('btn-edit-activity'),
@@ -290,7 +238,6 @@ const els = {
     thresholdAmount: $('threshold-amount'),
     initialAssets: $('initial-assets'),
     initialItems: $('initial-items'),
-    gameSelect: $('game-select'),
     vipSelect: $('vip-select'),
     platformSelect: $('platform-select'),
     vipLevelRow: $('vip-level-row'),
@@ -298,7 +245,18 @@ const els = {
     depositTypeRow: $('deposit-type-row'),
     depositTypeSelect: $('deposit-type-select'),
 
-    bonusConfigList: $('bonus-config-list'),
+    enableGlobalBonus: $('enable-global-bonus'),
+    globalBonusCard: $('global-bonus-card'),
+    globalBonusSettings: $('global-bonus-settings'),
+    globalBonusMin: $('global-bonus-min'),
+    globalBonusMax: $('global-bonus-max'),
+    globalBonusStep: $('global-bonus-step'),
+
+    enableChannelBonus: $('enable-channel-bonus'),
+    channelBonusCard: $('channel-bonus-card'),
+    channelBonusSettings: $('channel-bonus-settings'),
+    channelBonusRate: $('channel-bonus-rate'),
+
     depositButtons: $('deposit-buttons'),
     currencyNote: $('currency-note'),
     customAmount: $('custom-amount'),
@@ -319,32 +277,25 @@ const els = {
     btnClear: $('btn-clear'),
 
     paginationBar: $('pagination-bar'),
-    pageInfo: $('page-info'),
     pageNumbers: $('page-numbers'),
+    pageInfo: $('page-info'),
     btnPageFirst: $('btn-page-first'),
     btnPagePrev: $('btn-page-prev'),
     btnPageNext: $('btn-page-next'),
     btnPageLast: $('btn-page-last'),
 
-    // Modals
-    bonusModal: $('bonus-modal'),
-    bonusModalAmount: $('bonus-modal-amount'),
-    bonusModalClose: $('bonus-modal-close'),
-    bonusModalSave: $('bonus-modal-save'),
-    bonusModalCancel: $('bonus-modal-cancel'),
-
     activityModal: $('activity-modal'),
-    activityModalTitle: $('activity-modal-title'),
     activityNameInput: $('activity-name-input'),
-    activityModalClose: $('activity-modal-close'),
+    activityGameInput: $('activity-game-input'),
     activityModalSave: $('activity-modal-save'),
     activityModalCancel: $('activity-modal-cancel'),
+    activityModalClose: $('activity-modal-close'),
 
-    rangeInputModal: $('range-input-modal'),
-    rangeDisplay: $('range-display'),
-    rangeActualInput: $('range-actual-input'),
-    rangeInputConfirm: $('range-input-confirm'),
-    rangeInputCancel: $('range-input-cancel'),
+    verificationModal: $('verification-modal'),
+    verifyBaseAmount: $('verify-base-amount'),
+    verifyOptionList: $('verify-option-list'),
+    verificationModalCancel: $('verification-modal-cancel'),
+    verificationModalClose: $('verification-modal-close'),
 
     confirmModal: $('confirm-modal'),
     confirmMessage: $('confirm-message'),
@@ -352,70 +303,11 @@ const els = {
     confirmNo: $('confirm-no'),
 };
 
-// ===== 6. Custom Activity Select =====
-function buildCustomSelectOptions() {
-    const dropdown = els.activitySelectDropdown;
-    dropdown.innerHTML = '';
-
-    if (appState.activities.length === 0) {
-        const opt = document.createElement('div');
-        opt.className = 'custom-select-option';
-        opt.dataset.value = '';
-        opt.textContent = '— 請先新增活動 —';
-        opt.setAttribute('role', 'option');
-        dropdown.appendChild(opt);
-        els.activitySelectText.textContent = '— 請先新增活動 —';
-    } else {
-        let currentName = '';
-        appState.activities.forEach(a => {
-            const opt = document.createElement('div');
-            opt.className = 'custom-select-option';
-            opt.dataset.value = a.id;
-            opt.textContent = a.name;
-            opt.setAttribute('role', 'option');
-            if (a.id === appState.currentActivityId) {
-                opt.classList.add('selected');
-                currentName = a.name;
-            }
-            opt.addEventListener('click', () => {
-                appState.currentActivityId = a.id;
-                closeCustomSelect();
-                saveState();
-                renderAll();
-            });
-            dropdown.appendChild(opt);
-        });
-        if (!currentName && appState.activities.length > 0) {
-            currentName = appState.activities.find(a => a.id === appState.currentActivityId)?.name
-                || appState.activities[0].name;
-        }
-        els.activitySelectText.textContent = currentName || '— 請選擇活動 —';
-    }
-}
-
-function openCustomSelect() {
-    els.activitySelectDropdown.classList.add('open');
-    els.activitySelectDisplay.setAttribute('aria-expanded', 'true');
-}
-
-function closeCustomSelect() {
-    els.activitySelectDropdown.classList.remove('open');
-    els.activitySelectDisplay.setAttribute('aria-expanded', 'false');
-}
-
-function toggleCustomSelect() {
-    const isOpen = els.activitySelectDropdown.classList.contains('open');
-    if (isOpen) closeCustomSelect();
-    else openCustomSelect();
-}
-
-// ===== 7. UI Rendering =====
+// ===== 5. UI Rendering =====
 function renderMainVisibility() {
     const hasActivity = !!getCurrentActivity();
     els.noActivityPlaceholder.style.display = hasActivity ? 'none' : 'block';
     els.mainContent.style.display = hasActivity ? 'grid' : 'none';
-    els.btnEditActivity.disabled = !hasActivity;
-    els.btnDeleteActivity.disabled = !hasActivity;
 }
 
 function renderSettings() {
@@ -426,152 +318,78 @@ function renderSettings() {
     els.thresholdAmount.value = activity.threshold;
     els.initialAssets.value = session.initialAssets;
     els.initialItems.value = session.initialItems;
-    els.gameSelect.value = session.game || 'game_a';
     els.vipSelect.value = session.vipLevel;
     els.platformSelect.value = session.platform;
-    els.depositTypeSelect.value = session.depositType || 'coins';
+    els.depositTypeSelect.value = session.depositType;
 
-    const gameInfo = getGameInfo(session.game);
-    const isMahjong2 = session.game === 'mahjong2';
-    const noVip = gameInfo?.noVip || false;
+    els.enableGlobalBonus.checked = activity.enableGlobalBonus;
+    els.globalBonusSettings.style.display = activity.enableGlobalBonus ? 'flex' : 'none';
+    els.globalBonusMin.value = activity.globalBonusMin;
+    els.globalBonusMax.value = activity.globalBonusMax;
+    els.globalBonusStep.value = activity.globalBonusStep;
 
-    // 層級顯示切換
-    if (els.vipLevelRow) els.vipLevelRow.style.display = isMahjong2 ? 'none' : 'flex';
-    if (els.platformRow) els.platformRow.style.display = isMahjong2 ? 'none' : 'flex';
-    if (els.depositTypeRow) els.depositTypeRow.style.display = isMahjong2 ? 'flex' : 'none';
+    els.enableChannelBonus.checked = activity.enableChannelBonus || false;
+    els.channelBonusSettings.style.display = activity.enableChannelBonus ? 'flex' : 'none';
+    els.channelBonusRate.value = activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5;
 
-    // 若遊戲不分VIP，將VIP選單械灰提示 (滿貫大享等適用)
-    els.vipSelect.disabled = noVip;
-    els.vipSelect.style.opacity = noVip ? '0.45' : '1';
+    const isMahjong2 = activity.game === 'mahjong2';
+    const isStar3in1 = activity.game === 'star_3_in_1';
+    els.vipLevelRow.style.display = (isMahjong2 || isStar3in1) ? 'none' : 'flex';
+    els.platformRow.style.display = (isMahjong2 || isStar3in1) ? 'none' : 'flex';
+    els.depositTypeRow.style.display = isMahjong2 ? 'flex' : 'none';
+    els.channelBonusCard.style.display = isStar3in1 ? 'block' : 'none';
+    els.globalBonusCard.style.display = isStar3in1 ? 'block' : 'none';
 }
 
 function renderDepositButtons() {
-    const session = getCurrentSession();
     const activity = getCurrentActivity();
-    if (!session || !activity) return;
+    const session = getCurrentSession();
+    if (!activity || !session) return;
 
-    const gameInfo = getGameInfo(session.game);
-    const amounts = getAmounts(session.game, session.platform, session.vipLevel);
-    const container = els.depositButtons;
-    container.innerHTML = '';
+    const gameInfo = GAME_VIP_DATA[activity.game];
+    const platform = session.platform;
+    const vip = session.vipLevel;
+    const amounts = gameInfo?.platforms?.[platform]?.vip?.[vip] || [];
 
-    // 更新幣別說明
-    if (els.currencyNote) {
-        els.currencyNote.textContent = gameInfo?.currencyNote || '';
-    }
+    els.currencyNote.textContent = gameInfo?.currencyNote || '';
+    els.depositButtons.innerHTML = '';
 
     if (amounts.length === 0) {
-        const msg = document.createElement('p');
-        msg.style.cssText = 'color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 1rem;';
-        msg.textContent = '此遊戲/VIP/平台組合尚無品項資料';
-        container.appendChild(msg);
+        els.depositButtons.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; padding: 2rem; color: var(--text-muted);">🚩 儲值品項待提供，可使用下方的客製化儲值進行計算</div>';
         return;
     }
 
     amounts.forEach(amount => {
         const btn = document.createElement('button');
         btn.className = 'deposit-btn';
-        btn.dataset.amount = amount;
 
-        const bonusCfg = getBonusConfig(activity, session.platform, amount);
-        const hasBonus = bonusCfg.assetBonusType !== 'none' || bonusCfg.itemBonusType !== 'none';
-        if (hasBonus) btn.classList.add('has-bonus');
+        if (activity.game === 'mahjong2') {
+            const meta = gameInfo.depositItemMeta.find(m => m.amount === amount);
+            const isCoins = session.depositType === 'coins';
+            const assetAmount = isCoins ? meta.coins : meta.diamonds;
 
-        // 金額標額
-        const amountSpan = document.createElement('span');
-        amountSpan.className = 'amount';
-        amountSpan.textContent = formatNumber(amount);
-        btn.appendChild(amountSpan);
-
-        // 如果此遊戲有 depositItemMeta，顯示金幣/鑽石小字
-        const meta = getDepositItemMeta(session.game, amount);
-        if (meta) {
-            const metaSpan = document.createElement('span');
-            metaSpan.className = 'bonus-tag';
-            const coinStr = meta.coins >= 100000000
-                ? (meta.coins / 100000000).toFixed(1).replace(/\.0$/, '') + '億'
-                : formatNumber(meta.coins);
-            metaSpan.textContent = `金幣 ${coinStr} / 鑽石 ${formatNumber(meta.diamonds)}`;
-            btn.appendChild(metaSpan);
+            btn.innerHTML = `
+                <span class="ntd-amount">${amount} NTD</span>
+                <span class="asset-amount">${formatNumber(assetAmount)}</span>
+            `;
+        } else {
+            btn.innerHTML = `<span class="amount">${formatNumber(amount)}</span>`;
         }
 
-        // 如果有再加贈設定，顯示大基贈標簽
-        if (hasBonus) {
-            const parts = [];
-            if (bonusCfg.assetBonusType === 'ratio') {
-                parts.push(`+${bonusCfg.assetBonusValue}%`);
-            } else if (bonusCfg.assetBonusType === 'fixed') {
-                parts.push(`+${formatNumber(bonusCfg.assetBonusValue)}`);
-            }
-            const hasItemBonus = bonusCfg.itemBonusType !== 'none';
-            if (bonusCfg.itemBonusType === 'fixed') parts.push(`道具+${bonusCfg.itemBonusFixed}`);
-            else if (bonusCfg.itemBonusType === 'range') parts.push(`道具+${bonusCfg.itemBonusMin}~${bonusCfg.itemBonusMax}`);
-
-            if (parts.length > 0) {
-                const tagSpan = document.createElement('span');
-                tagSpan.className = 'bonus-tag' + (hasItemBonus ? ' has-item-bonus' : '');
-                tagSpan.textContent = parts.join(' ');
-                btn.appendChild(tagSpan);
-            }
-        }
-
-        btn.addEventListener('click', () => handleDeposit(amount));
-        container.appendChild(btn);
+        btn.addEventListener('click', () => handleDepositTrigger(amount));
+        els.depositButtons.appendChild(btn);
     });
 }
 
-function renderBonusConfigList() {
-    const session = getCurrentSession();
-    const activity = getCurrentActivity();
-    if (!session || !activity) return;
-
-    const amounts = getAmounts(session.game, session.platform, session.vipLevel);
-    const container = els.bonusConfigList;
-    container.innerHTML = '';
-
-    if (amounts.length === 0) {
-        const msg = document.createElement('p');
-        msg.style.cssText = 'color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 0.5rem;';
-        msg.textContent = '無可設定品項';
-        container.appendChild(msg);
-        return;
+function renderAll() {
+    buildCustomSelectOptions();
+    renderMainVisibility();
+    if (getCurrentActivity()) {
+        renderSettings();
+        renderDepositButtons();
+        renderStatus();
+        renderRecords();
     }
-
-    amounts.forEach(amount => {
-        const bonusCfg = getBonusConfig(activity, session.platform, amount);
-        const hasBonus = bonusCfg.assetBonusType !== 'none' || bonusCfg.itemBonusType !== 'none';
-
-        const item = document.createElement('div');
-        item.className = 'bonus-config-item';
-
-        const label = document.createElement('span');
-        label.className = 'amount-label';
-        label.textContent = formatNumber(amount);
-
-        const info = document.createElement('span');
-        info.className = 'bonus-info' + (hasBonus ? ' has-bonus' : '');
-        if (hasBonus) {
-            const parts = [];
-            if (bonusCfg.assetBonusType === 'ratio') parts.push(`財產+${bonusCfg.assetBonusValue}%`);
-            else if (bonusCfg.assetBonusType === 'fixed') parts.push(`財產+${formatNumber(bonusCfg.assetBonusValue)}`);
-            if (bonusCfg.itemBonusType === 'fixed') parts.push(`道具+${bonusCfg.itemBonusFixed}`);
-            else if (bonusCfg.itemBonusType === 'range') parts.push(`道具+${bonusCfg.itemBonusMin}~${bonusCfg.itemBonusMax}`);
-            info.textContent = parts.join('、');
-        } else {
-            info.textContent = '未設定';
-        }
-
-        const btn = document.createElement('button');
-        btn.className = 'bonus-config-btn';
-        btn.textContent = '⚙';
-        btn.title = '設定加贈';
-        btn.addEventListener('click', () => openBonusModal(amount));
-
-        item.appendChild(label);
-        item.appendChild(info);
-        item.appendChild(btn);
-        container.appendChild(item);
-    });
 }
 
 function renderStatus() {
@@ -580,12 +398,9 @@ function renderStatus() {
     if (!activity || !session) return;
 
     const result = computeRecords(session, activity.threshold);
-
     els.currentAssetsDisplay.textContent = formatNumber(result.currentAssets);
     els.cumulativeDepositDisplay.textContent = formatNumber(result.cumulativeDeposit);
-    els.nextMilestoneDisplay.textContent = activity.threshold > 0
-        ? formatNumber(result.nextMilestoneDiff)
-        : '—';
+    els.nextMilestoneDisplay.textContent = formatNumber(result.nextMilestoneDiff);
     els.milestoneItemsDisplay.textContent = formatNumber(result.totalMilestoneItems);
     els.totalItemsDisplay.textContent = formatNumber(result.totalItems);
 }
@@ -595,560 +410,204 @@ function renderRecords() {
     const session = getCurrentSession();
     if (!activity || !session) return;
 
-    const result = computeRecords(session, activity.threshold);
-    const allRecords = result.computed;
-    const hasRecords = allRecords.length > 0;
+    const { computed } = computeRecords(session, activity.threshold);
+    els.emptyRecords.style.display = computed.length ? 'none' : 'block';
+    els.tableWrapper.style.display = computed.length ? 'block' : 'none';
+    els.btnUndo.disabled = !computed.length;
+    els.btnClear.disabled = !computed.length;
 
-    els.emptyRecords.style.display = hasRecords ? 'none' : 'block';
-    els.tableWrapper.style.display = hasRecords ? 'block' : 'none';
-    els.btnUndo.disabled = !hasRecords;
-    els.btnClear.disabled = !hasRecords;
-
-    if (!hasRecords) {
-        els.paginationBar.style.display = 'none';
-        els.btnDeleteSelected.disabled = true;
-        return;
-    }
-
-    // Pagination
-    const totalPages = Math.max(1, Math.ceil(allRecords.length / PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(computed.length / PAGE_SIZE));
     if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const slice = computed.slice(start, start + PAGE_SIZE);
 
-    const startIdx = (currentPage - 1) * PAGE_SIZE;
-    const endIdx = Math.min(startIdx + PAGE_SIZE, allRecords.length);
-    const pageRecords = allRecords.slice(startIdx, endIdx);
-
-    const tbody = els.recordTbody;
-    tbody.innerHTML = '';
-
-    pageRecords.forEach((rec, localIdx) => {
-        const globalIdx = startIdx + localIdx;
-        const isLast = globalIdx === allRecords.length - 1;
+    els.recordTbody.innerHTML = '';
+    slice.forEach(rec => {
         const tr = document.createElement('tr');
-        if (isLast) tr.classList.add('new-row');
-        tr.dataset.recordIndex = globalIdx;
-
-        // Checkbox cell
-        const tdCheck = document.createElement('td');
-        tdCheck.className = 'col-check';
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.dataset.recordIndex = globalIdx;
-        cb.addEventListener('change', onRowCheckboxChange);
-        tdCheck.appendChild(cb);
-        tr.appendChild(tdCheck);
-
-        const cells = [
-            rec.index,
-            formatNumber(rec.depositAmount),
-            rec.bonusAssets > 0 ? `+${formatNumber(rec.bonusAssets)}` : '-',
-            rec.bonusItems > 0 ? `+${rec.bonusItems}` : '-',
-            formatNumber(rec.assetsAfter),
-            formatNumber(rec.cumulativeDeposit),
-            rec.newMilestoneItems > 0 ? `+${rec.newMilestoneItems}` : '-',
-            formatNumber(rec.totalMilestoneItems),
-            formatNumber(rec.totalItems),
-        ];
-
-        cells.forEach((val, ci) => {
-            const td = document.createElement('td');
-            td.textContent = val;
-            if (ci === 6 && rec.newMilestoneItems > 0) td.classList.add('milestone-new');
-            if (ci === 8) td.classList.add('col-total');
-            tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
+        tr.innerHTML = `
+            <td class="col-check"><input type="checkbox" data-index="${rec.index - 1}"></td>
+            <td>${rec.index}</td>
+            <td>${formatNumber(rec.depositAmount)}</td>
+            <td>${rec.bonusAssets > 0 ? '+' + formatNumber(rec.bonusAssets) : '-'}</td>
+            <td>${rec.bonusItems > 0 ? '+' + formatNumber(rec.bonusItems) : '-'}</td>
+            <td>${formatNumber(rec.assetsAfter)}</td>
+            <td>${formatNumber(rec.cumulativeDeposit)}</td>
+            <td class="${rec.newMilestoneItems > 0 ? 'milestone-new' : ''}">${rec.newMilestoneItems > 0 ? '+' + rec.newMilestoneItems : '-'}</td>
+            <td>${formatNumber(rec.totalMilestoneItems)}</td>
+            <td class="col-total">${formatNumber(rec.totalItems)}</td>
+        `;
+        els.recordTbody.appendChild(tr);
     });
 
-    // Reset select-all checkbox
-    els.selectAllRecords.checked = false;
-    els.selectAllRecords.indeterminate = false;
-    els.btnDeleteSelected.disabled = true;
-
-    // Pagination bar
-    if (totalPages > 1) {
-        els.paginationBar.style.display = 'flex';
-        els.btnPageFirst.disabled = currentPage === 1;
-        els.btnPagePrev.disabled = currentPage === 1;
-        els.btnPageNext.disabled = currentPage === totalPages;
-        els.btnPageLast.disabled = currentPage === totalPages;
-        els.pageInfo.textContent = `第 ${currentPage} / ${totalPages} 頁，共 ${allRecords.length} 筆`;
-
-        // Page number buttons
-        const pn = els.pageNumbers;
-        pn.innerHTML = '';
-        const maxBtns = 7;
-        let startPage = Math.max(1, currentPage - Math.floor(maxBtns / 2));
-        let endPage = Math.min(totalPages, startPage + maxBtns - 1);
-        if (endPage - startPage < maxBtns - 1) startPage = Math.max(1, endPage - maxBtns + 1);
-        for (let p = startPage; p <= endPage; p++) {
-            const pb = document.createElement('button');
-            pb.className = 'page-number-btn' + (p === currentPage ? ' active' : '');
-            pb.textContent = p;
-            const pg = p;
-            pb.addEventListener('click', () => { currentPage = pg; renderRecords(); });
-            pn.appendChild(pb);
-        }
-    } else {
-        els.paginationBar.style.display = 'none';
-    }
+    els.paginationBar.style.display = totalPages > 1 ? 'flex' : 'none';
+    els.pageInfo.textContent = `第 ${currentPage} / ${totalPages} 頁 (共 ${computed.length} 筆)`;
 }
 
-function renderAll() {
-    buildCustomSelectOptions();
-    renderMainVisibility();
-    if (getCurrentActivity()) {
-        renderSettings();
-        renderDepositButtons();
-        renderBonusConfigList();
-        renderStatus();
-        currentPage = 1;
-        renderRecords();
-    }
-}
-
-// ===== 8. Record Selection =====
-function onRowCheckboxChange() {
-    const checkboxes = els.recordTbody.querySelectorAll('input[type="checkbox"]');
-    const checked = [...checkboxes].filter(c => c.checked);
-    els.selectAllRecords.checked = checked.length === checkboxes.length && checkboxes.length > 0;
-    els.selectAllRecords.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
-    els.btnDeleteSelected.disabled = checked.length === 0;
-
-    // Highlight selected rows
-    checkboxes.forEach(cb => {
-        const tr = cb.closest('tr');
-        if (cb.checked) tr.classList.add('row-selected');
-        else tr.classList.remove('row-selected');
-    });
-}
-
-function getSelectedIndices() {
-    const checkboxes = els.recordTbody.querySelectorAll('input[type="checkbox"]:checked');
-    return [...checkboxes].map(cb => parseInt(cb.dataset.recordIndex));
-}
-
-// ===== 9. Deposit Logic =====
-function handleDeposit(amount) {
+// ===== 6. Deposit Handling =====
+function handleDepositTrigger(amount) {
     const activity = getCurrentActivity();
-    const session = getCurrentSession();
-    if (!activity || !session) return;
-
-    const bonusCfg = getBonusConfig(activity, session.platform, amount);
-    const bonusAssets = calculateBonusAssets(amount, bonusCfg);
-
-    if (bonusCfg.itemBonusType === 'range') {
-        openRangeInputModal(amount, bonusAssets, bonusCfg);
-        return;
+    if (activity.enableGlobalBonus) {
+        openVerificationModal(amount);
+    } else {
+        const bonusAssets = (activity.enableChannelBonus && activity.channelBonusRate)
+            ? Math.floor(amount * (activity.channelBonusRate / 100))
+            : 0;
+        addRecord(amount, bonusAssets, 0);
     }
-
-    const bonusItems = bonusCfg.itemBonusType === 'fixed' ? (bonusCfg.itemBonusFixed || 0) : 0;
-    addDepositRecord(amount, bonusAssets, bonusItems);
 }
 
-function addDepositRecord(depositAmount, bonusAssets, bonusItems) {
-    const session = getCurrentSession();
-    if (!session) return;
+function openVerificationModal(amount) {
+    const activity = getCurrentActivity();
+    els.verifyBaseAmount.textContent = formatNumber(amount);
+    els.verifyOptionList.innerHTML = '';
 
-    session.records.push({ depositAmount, bonusAssets, bonusItems });
-    // Go to last page when new record is added
-    const totalPages = Math.max(1, Math.ceil(session.records.length / PAGE_SIZE));
-    currentPage = totalPages;
+    const baseMin = activity.globalBonusMin;
+    const baseMax = activity.globalBonusMax;
+    const step = activity.globalBonusStep || 1;
+    const channelBonusRate = (activity.enableChannelBonus && activity.channelBonusRate) ? activity.channelBonusRate : 0;
+
+    for (let p = baseMin; p <= baseMax; p += step) {
+        const totalP = p + channelBonusRate;
+        const bonusAssets = Math.floor(amount * (totalP / 100));
+        const btn = document.createElement('div');
+        btn.className = 'verify-btn';
+        btn.innerHTML = `
+            <span class="verify-amount">${formatNumber(amount + bonusAssets)}</span>
+            <span class="verify-label">+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道)</span>
+        `;
+        btn.onclick = () => {
+            addRecord(amount, bonusAssets, 0);
+            closeVerificationModal();
+        };
+        els.verifyOptionList.appendChild(btn);
+    }
+    els.verificationModal.style.display = 'flex';
+}
+
+function closeVerificationModal() { els.verificationModal.style.display = 'none'; }
+
+function addRecord(amount, bonusAssets, bonusItems) {
+    const session = getCurrentSession();
+    session.records.push({ depositAmount: amount, bonusAssets, bonusItems });
     saveState();
     renderStatus();
+    currentPage = Math.ceil(session.records.length / PAGE_SIZE);
     renderRecords();
+}
 
-    // Button click animation
-    const btn = els.depositButtons.querySelector(`[data-amount="${depositAmount}"]`);
-    if (btn) {
-        btn.classList.add('clicked');
-        setTimeout(() => btn.classList.remove('clicked'), 400);
+// ===== 7. Custom Activity Select =====
+function buildCustomSelectOptions() {
+    const dropdown = els.activitySelectDropdown;
+    dropdown.innerHTML = '';
+    if (appState.activities.length === 0) {
+        els.activitySelectText.textContent = '— 請先新增活動 —';
+    } else {
+        const current = getCurrentActivity();
+        els.activitySelectText.textContent = current ? current.name : '— 請選擇活動 —';
+        appState.activities.forEach(a => {
+            const opt = document.createElement('div');
+            opt.className = 'custom-select-option' + (a.id === appState.currentActivityId ? ' selected' : '');
+            opt.textContent = a.name;
+            opt.onclick = () => {
+                appState.currentActivityId = a.id;
+                saveState();
+                renderAll();
+                els.activitySelectDropdown.classList.remove('open');
+            };
+            dropdown.appendChild(opt);
+        });
     }
 }
 
-// ===== 10. Modal Handlers =====
+// ===== 8. Event Listeners =====
+function initEvents() {
+    // Activity Select
+    els.activitySelectDisplay.onclick = (e) => {
+        e.stopPropagation();
+        els.activitySelectDropdown.classList.toggle('open');
+    };
+    document.onclick = () => els.activitySelectDropdown.classList.remove('open');
 
-// --- Activity Modal ---
-let activityModalMode = 'new';
+    // Modals
+    els.btnNewActivity.onclick = () => openActivityModal('new');
+    els.btnEditActivity.onclick = () => openActivityModal('edit');
+    els.btnDeleteActivity.onclick = () => openConfirmModal('確定刪除此活動及其紀錄嗎？', () => {
+        appState.activities = appState.activities.filter(a => a.id !== appState.currentActivityId);
+        delete appState.sessions[appState.currentActivityId];
+        appState.currentActivityId = appState.activities.length ? appState.activities[0].id : null;
+        saveState(); renderAll();
+    });
+
+    els.activityModalSave.onclick = () => {
+        const name = els.activityNameInput.value.trim();
+        const game = els.activityGameInput.value;
+        if (!name) return;
+
+        let activity = getCurrentActivity();
+        if (!activity || els.activityModal.dataset.mode === 'new') {
+            activity = createDefaultActivity(name, game);
+            appState.activities.push(activity);
+            appState.currentActivityId = activity.id;
+        } else {
+            activity.name = name;
+            activity.game = game;
+        }
+        saveState();
+        els.activityModal.style.display = 'none';
+        renderAll();
+    };
+    els.activityModalCancel.onclick = els.activityModalClose.onclick = () => els.activityModal.style.display = 'none';
+
+    // Settings sync
+    els.thresholdAmount.onchange = () => { getCurrentActivity().threshold = parseInt(els.thresholdAmount.value) || 0; saveState(); renderStatus(); renderRecords(); };
+    els.initialAssets.onchange = () => { getCurrentSession().initialAssets = parseInt(els.initialAssets.value) || 0; saveState(); renderStatus(); renderRecords(); };
+    els.initialItems.onchange = () => { getCurrentSession().initialItems = parseInt(els.initialItems.value) || 0; saveState(); renderStatus(); renderRecords(); };
+    els.vipSelect.onchange = () => { getCurrentSession().vipLevel = parseInt(els.vipSelect.value); saveState(); renderDepositButtons(); };
+    els.platformSelect.onchange = () => { getCurrentSession().platform = els.platformSelect.value; saveState(); renderDepositButtons(); };
+    els.depositTypeSelect.onchange = () => { getCurrentSession().depositType = els.depositTypeSelect.value; saveState(); renderDepositButtons(); };
+
+    // Global Bonus settings
+    els.enableGlobalBonus.onchange = () => { getCurrentActivity().enableGlobalBonus = els.enableGlobalBonus.checked; saveState(); renderSettings(); };
+    els.globalBonusMin.onchange = () => { getCurrentActivity().globalBonusMin = parseFloat(els.globalBonusMin.value) || 0; saveState(); };
+    els.globalBonusMax.onchange = () => { getCurrentActivity().globalBonusMax = parseFloat(els.globalBonusMax.value) || 0; saveState(); };
+    els.globalBonusStep.onchange = () => { getCurrentActivity().globalBonusStep = parseFloat(els.globalBonusStep.value) || 1; saveState(); };
+
+    // Channel Bonus settings
+    els.enableChannelBonus.onchange = () => { getCurrentActivity().enableChannelBonus = els.enableChannelBonus.checked; saveState(); renderSettings(); };
+    els.channelBonusRate.onchange = () => { getCurrentActivity().channelBonusRate = parseFloat(els.channelBonusRate.value) || 0; saveState(); };
+
+    // Deposit
+    els.btnCustomDeposit.onclick = () => { const val = parseInt(els.customAmount.value); if (val) { handleDepositTrigger(val); els.customAmount.value = ''; } };
+    els.verificationModalCancel.onclick = els.verificationModalClose.onclick = closeVerificationModal;
+
+    // Record actions
+    els.btnUndo.onclick = () => { getCurrentSession().records.pop(); saveState(); renderStatus(); renderRecords(); };
+    els.btnClear.onclick = () => openConfirmModal('確定清空所有紀錄？', () => { getCurrentSession().records = []; saveState(); renderStatus(); renderRecords(); });
+
+    // Confirm Modal
+    els.confirmYes.onclick = () => { els.confirmModal.style.display = 'none'; if (els.confirmModal._callback) els.confirmModal._callback(); };
+    els.confirmNo.onclick = () => els.confirmModal.style.display = 'none';
+}
 
 function openActivityModal(mode) {
-    activityModalMode = mode;
-    els.activityModalTitle.textContent = mode === 'new' ? '➕ 新增活動' : '✏️ 編輯活動名稱';
-    els.activityNameInput.value = mode === 'edit' ? (getCurrentActivity()?.name || '') : '';
+    els.activityModal.dataset.mode = mode;
+    const activity = getCurrentActivity();
+    els.activityNameInput.value = mode === 'edit' ? activity.name : '';
+    els.activityGameInput.value = mode === 'edit' ? activity.game : 'game_a';
     els.activityModal.style.display = 'flex';
-    els.activityNameInput.focus();
 }
 
-function closeActivityModal() {
-    els.activityModal.style.display = 'none';
-}
-
-function saveActivityModal() {
-    const name = els.activityNameInput.value.trim();
-    if (!name) { els.activityNameInput.focus(); return; }
-
-    if (activityModalMode === 'new') {
-        const newActivity = createDefaultActivity(name);
-        appState.activities.push(newActivity);
-        appState.currentActivityId = newActivity.id;
-    } else {
-        const activity = getCurrentActivity();
-        if (activity) activity.name = name;
-    }
-
-    saveState();
-    closeActivityModal();
-    renderAll();
-}
-
-// --- Bonus Modal ---
-let bonusModalCurrentAmount = 0;
-
-function openBonusModal(amount) {
-    bonusModalCurrentAmount = amount;
-    els.bonusModalAmount.textContent = formatNumber(amount);
-
-    const activity = getCurrentActivity();
-    const session = getCurrentSession();
-    if (!activity || !session) return;
-
-    const cfg = getBonusConfig(activity, session.platform, amount);
-
-    document.querySelector(`input[name="asset-bonus-type"][value="${cfg.assetBonusType}"]`).checked = true;
-    document.querySelector(`input[name="item-bonus-type"][value="${cfg.itemBonusType}"]`).checked = true;
-
-    $('asset-bonus-value').value = cfg.assetBonusValue || 0;
-    $('item-bonus-fixed').value = cfg.itemBonusFixed || 0;
-    $('item-bonus-min').value = cfg.itemBonusMin || 0;
-    $('item-bonus-max').value = cfg.itemBonusMax || 0;
-    $('asset-bonus-unit').textContent = cfg.assetBonusType === 'ratio' ? '%' : '元';
-
-    updateBonusModalVisibility();
-    updateAssetBonusPreview();
-
-    els.bonusModal.style.display = 'flex';
-}
-
-function closeBonusModal() {
-    els.bonusModal.style.display = 'none';
-}
-
-function saveBonusModal() {
-    const activity = getCurrentActivity();
-    const session = getCurrentSession();
-    if (!activity || !session) return;
-
-    const assetType = document.querySelector('input[name="asset-bonus-type"]:checked').value;
-    const itemType = document.querySelector('input[name="item-bonus-type"]:checked').value;
-
-    const key = getBonusConfigKey(session.platform, bonusModalCurrentAmount);
-    activity.bonusConfig[key] = {
-        assetBonusType: assetType,
-        assetBonusValue: parseFloat($('asset-bonus-value').value) || 0,
-        itemBonusType: itemType,
-        itemBonusFixed: parseInt($('item-bonus-fixed').value) || 0,
-        itemBonusMin: parseInt($('item-bonus-min').value) || 0,
-        itemBonusMax: parseInt($('item-bonus-max').value) || 0,
-    };
-
-    saveState();
-    closeBonusModal();
-    renderDepositButtons();
-    renderBonusConfigList();
-}
-
-function updateBonusModalVisibility() {
-    const assetType = document.querySelector('input[name="asset-bonus-type"]:checked').value;
-    const itemType = document.querySelector('input[name="item-bonus-type"]:checked').value;
-
-    $('asset-bonus-value-group').style.display = assetType !== 'none' ? 'block' : 'none';
-    $('asset-bonus-unit').textContent = assetType === 'ratio' ? '%' : '元';
-    $('item-bonus-fixed-group').style.display = itemType === 'fixed' ? 'block' : 'none';
-    $('item-bonus-range-group').style.display = itemType === 'range' ? 'block' : 'none';
-}
-
-function updateAssetBonusPreview() {
-    const assetType = document.querySelector('input[name="asset-bonus-type"]:checked').value;
-    const val = parseFloat($('asset-bonus-value').value) || 0;
-    const preview = $('asset-bonus-preview');
-    if (!preview) return;
-
-    if (assetType === 'ratio' && val > 0) {
-        const bonus = Math.floor(bonusModalCurrentAmount * (val / 100));
-        preview.textContent = `儲值 ${formatNumber(bonusModalCurrentAmount)} → 加贈 ${formatNumber(bonus)}（共 ${formatNumber(bonusModalCurrentAmount + bonus)}）`;
-    } else if (assetType === 'fixed' && val > 0) {
-        preview.textContent = `儲值 ${formatNumber(bonusModalCurrentAmount)} → 加贈 ${formatNumber(val)}（共 ${formatNumber(bonusModalCurrentAmount + val)}）`;
-    } else {
-        preview.textContent = '';
-    }
-}
-
-// --- Range Input Modal ---
-let rangeInputCallback = null;
-
-function openRangeInputModal(amount, bonusAssets, bonusCfg) {
-    els.rangeDisplay.textContent = `${bonusCfg.itemBonusMin} ~ ${bonusCfg.itemBonusMax} 個`;
-    els.rangeActualInput.value = bonusCfg.itemBonusMin;
-    els.rangeActualInput.min = bonusCfg.itemBonusMin;
-    els.rangeActualInput.max = bonusCfg.itemBonusMax;
-    rangeInputCallback = (actualItems) => { addDepositRecord(amount, bonusAssets, actualItems); };
-    els.rangeInputModal.style.display = 'flex';
-    els.rangeActualInput.focus();
-    els.rangeActualInput.select();
-}
-
-function closeRangeInputModal() {
-    els.rangeInputModal.style.display = 'none';
-    rangeInputCallback = null;
-}
-
-function confirmRangeInput() {
-    const val = parseInt(els.rangeActualInput.value) || 0;
-    if (rangeInputCallback) rangeInputCallback(val);
-    closeRangeInputModal();
-}
-
-// --- Confirm Modal ---
-let confirmCallback = null;
-
-function openConfirmModal(message, callback) {
-    els.confirmMessage.textContent = message;
-    confirmCallback = callback;
+function openConfirmModal(msg, cb) {
+    els.confirmMessage.textContent = msg;
+    els.confirmModal._callback = cb;
     els.confirmModal.style.display = 'flex';
 }
 
-function closeConfirmModal() {
-    els.confirmModal.style.display = 'none';
-    confirmCallback = null;
-}
-
-// ===== 11. Event Handlers =====
-function initEventHandlers() {
-    // Custom Activity Select
-    els.activitySelectDisplay.addEventListener('click', toggleCustomSelect);
-    els.activitySelectDisplay.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCustomSelect(); }
-        if (e.key === 'Escape') closeCustomSelect();
-    });
-    document.addEventListener('click', (e) => {
-        if (!els.activitySelectWrapper.contains(e.target)) closeCustomSelect();
-    });
-
-    // Activity buttons
-    els.btnNewActivity.addEventListener('click', () => openActivityModal('new'));
-    els.btnEditActivity.addEventListener('click', () => openActivityModal('edit'));
-    els.btnDeleteActivity.addEventListener('click', () => {
-        const activity = getCurrentActivity();
-        if (!activity) return;
-        openConfirmModal(`確定要刪除活動「${activity.name}」嗎？此操作無法復原。`, () => {
-            appState.activities = appState.activities.filter(a => a.id !== activity.id);
-            delete appState.sessions[activity.id];
-            appState.currentActivityId = appState.activities.length > 0 ? appState.activities[0].id : null;
-            saveState();
-            renderAll();
-        });
-    });
-
-    // Activity modal
-    els.activityModalSave.addEventListener('click', saveActivityModal);
-    els.activityModalCancel.addEventListener('click', closeActivityModal);
-    els.activityModalClose.addEventListener('click', closeActivityModal);
-    els.activityNameInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') saveActivityModal();
-        if (e.key === 'Escape') closeActivityModal();
-    });
-
-    // Settings
-    els.thresholdAmount.addEventListener('change', () => {
-        const activity = getCurrentActivity();
-        if (activity) {
-            activity.threshold = parseInt(els.thresholdAmount.value) || 1;
-            saveState();
-            renderStatus();
-            renderRecords();
-        }
-    });
-
-    els.initialAssets.addEventListener('change', () => {
-        const session = getCurrentSession();
-        if (session) {
-            session.initialAssets = parseInt(els.initialAssets.value) || 0;
-            saveState(); renderStatus(); renderRecords();
-        }
-    });
-
-    els.initialItems.addEventListener('change', () => {
-        const session = getCurrentSession();
-        if (session) {
-            session.initialItems = parseInt(els.initialItems.value) || 0;
-            saveState(); renderStatus(); renderRecords();
-        }
-    });
-
-    els.gameSelect.addEventListener('change', () => {
-        const session = getCurrentSession();
-        if (session) {
-            session.game = els.gameSelect.value;
-            saveState(); renderDepositButtons(); renderBonusConfigList();
-        }
-    });
-
-    els.vipSelect.addEventListener('change', () => {
-        const session = getCurrentSession();
-        if (session) {
-            session.vipLevel = parseInt(els.vipSelect.value);
-            saveState(); renderDepositButtons(); renderBonusConfigList();
-        }
-    });
-
-    els.platformSelect.addEventListener('change', () => {
-        const session = getCurrentSession();
-        if (session) {
-            session.platform = els.platformSelect.value;
-            saveState(); renderDepositButtons(); renderBonusConfigList();
-        }
-    });
-
-    // Custom deposit
-    els.btnCustomDeposit.addEventListener('click', () => {
-        const amount = parseInt(els.customAmount.value);
-        if (amount && amount > 0) {
-            handleDeposit(amount);
-            els.customAmount.value = '';
-        }
-    });
-
-    els.customAmount.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') els.btnCustomDeposit.click();
-    });
-
-    // Record selection
-    els.selectAllRecords.addEventListener('change', () => {
-        const checkboxes = els.recordTbody.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(cb => {
-            cb.checked = els.selectAllRecords.checked;
-            const tr = cb.closest('tr');
-            if (cb.checked) tr.classList.add('row-selected');
-            else tr.classList.remove('row-selected');
-        });
-        els.btnDeleteSelected.disabled = !els.selectAllRecords.checked || checkboxes.length === 0;
-    });
-
-    // Delete selected
-    els.btnDeleteSelected.addEventListener('click', () => {
-        const indices = getSelectedIndices();
-        if (indices.length === 0) return;
-        openConfirmModal(`確定要刪除選取的 ${indices.length} 筆紀錄嗎？`, () => {
-            const session = getCurrentSession();
-            if (!session) return;
-            // Remove in descending index order to not shift indices
-            const sorted = [...indices].sort((a, b) => b - a);
-            sorted.forEach(i => session.records.splice(i, 1));
-            // Adjust page if needed
-            const totalPages = Math.max(1, Math.ceil(session.records.length / PAGE_SIZE));
-            if (currentPage > totalPages) currentPage = totalPages;
-            saveState(); renderStatus(); renderRecords();
-        });
-    });
-
-    // Undo
-    els.btnUndo.addEventListener('click', () => {
-        const session = getCurrentSession();
-        if (session && session.records.length > 0) {
-            session.records.pop();
-            const totalPages = Math.max(1, Math.ceil(session.records.length / PAGE_SIZE));
-            if (currentPage > totalPages) currentPage = totalPages;
-            saveState(); renderStatus(); renderRecords();
-        }
-    });
-
-    // Clear all
-    els.btnClear.addEventListener('click', () => {
-        openConfirmModal('確定要清除所有儲值紀錄嗎？', () => {
-            const session = getCurrentSession();
-            if (session) {
-                session.records = [];
-                currentPage = 1;
-                saveState(); renderStatus(); renderRecords();
-            }
-        });
-    });
-
-    // Pagination
-    els.btnPageFirst.addEventListener('click', () => { currentPage = 1; renderRecords(); });
-    els.btnPagePrev.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderRecords(); } });
-    els.btnPageNext.addEventListener('click', () => {
-        const session = getCurrentSession();
-        const activity = getCurrentActivity();
-        if (!session || !activity) return;
-        const totalPages = Math.max(1, Math.ceil(session.records.length / PAGE_SIZE));
-        if (currentPage < totalPages) { currentPage++; renderRecords(); }
-    });
-    els.btnPageLast.addEventListener('click', () => {
-        const session = getCurrentSession();
-        const activity = getCurrentActivity();
-        if (!session || !activity) return;
-        currentPage = Math.max(1, Math.ceil(session.records.length / PAGE_SIZE));
-        renderRecords();
-    });
-
-    // Bonus modal
-    els.bonusModalSave.addEventListener('click', saveBonusModal);
-    els.bonusModalCancel.addEventListener('click', closeBonusModal);
-    els.bonusModalClose.addEventListener('click', closeBonusModal);
-
-    document.querySelectorAll('input[name="asset-bonus-type"]').forEach(radio => {
-        radio.addEventListener('change', () => { updateBonusModalVisibility(); updateAssetBonusPreview(); });
-    });
-    document.querySelectorAll('input[name="item-bonus-type"]').forEach(radio => {
-        radio.addEventListener('change', updateBonusModalVisibility);
-    });
-    $('asset-bonus-value').addEventListener('input', updateAssetBonusPreview);
-
-    // Range modal
-    els.rangeInputConfirm.addEventListener('click', confirmRangeInput);
-    els.rangeInputCancel.addEventListener('click', closeRangeInputModal);
-    els.rangeActualInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') confirmRangeInput();
-        if (e.key === 'Escape') closeRangeInputModal();
-    });
-
-    // Confirm modal
-    els.confirmYes.addEventListener('click', () => { if (confirmCallback) confirmCallback(); closeConfirmModal(); });
-    els.confirmNo.addEventListener('click', closeConfirmModal);
-
-    // Close modals on overlay click
-    [els.bonusModal, els.activityModal, els.rangeInputModal, els.confirmModal].forEach(overlay => {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) overlay.style.display = 'none';
-        });
-    });
-
-    // Escape key closes modals
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            [els.bonusModal, els.activityModal, els.rangeInputModal, els.confirmModal].forEach(m => {
-                if (m.style.display === 'flex') m.style.display = 'none';
-            });
-            closeCustomSelect();
-        }
-    });
-}
-
-// ===== 12. Initialization =====
+// ===== 9. Initialization =====
 function init() {
     loadState();
-
-    if (appState.currentActivityId) {
-        const exists = appState.activities.some(a => a.id === appState.currentActivityId);
-        if (!exists) {
-            appState.currentActivityId = appState.activities.length > 0 ? appState.activities[0].id : null;
-        }
-    }
-
-    initEventHandlers();
+    initEvents();
     renderAll();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+window.onload = init;

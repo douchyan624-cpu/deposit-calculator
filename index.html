@@ -9,7 +9,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="index.css?v=1.1">
 </head>
 
 <body>
@@ -60,7 +60,29 @@
 
         <div class="main-grid" id="main-content" style="display:none">
             <!-- Left Column: Settings -->
-            <aside id="settings-column">
+            <aside id="settings-column" data-cache-bust="v12345">
+                <!-- Channel Bonus Config -->
+                <section class="card" id="channel-bonus-card" style="display:none">
+                    <div class="card-header-with-action">
+                        <h2 class="card-title">💳 渠道加成設定</h2>
+                        <label class="switch-label">
+                            <input type="checkbox" id="enable-channel-bonus">
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+                    <div id="channel-bonus-settings" class="setting-group-vertical" style="display:none">
+                        <div class="setting-row">
+                            <label for="channel-bonus-rate">加成比例</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="channel-bonus-rate" class="input-field no-spin" value="5"
+                                    min="0" step="0.1">
+                                <span class="unit">%</span>
+                            </div>
+                        </div>
+                        <p class="setting-hint">適用於信用卡、iPASS、LINE Pay等管道</p>
+                    </div>
+                </section>
+
                 <!-- Threshold Settings -->
                 <section class="card" id="threshold-card">
                     <h2 class="card-title">⚙️ 滿額門檻</h2>
@@ -89,15 +111,8 @@
 
                 <!-- Game / VIP / Platform Selection -->
                 <section class="card" id="vip-card">
-                    <h2 class="card-title">🎖️ 遊戲 / VIP / 平台</h2>
-                    <div class="setting-row">
-                        <label for="game-select">遊戲</label>
-                        <select id="game-select" class="input-field styled-select">
-                            <option value="game_a">滿貫大亨</option>
-                            <option value="mahjong2">競技麻將2</option>
-                        </select>
-                    </div>
-                    <!-- VIP row: 滿貫大亨顯示，競技麻將2隱藏 -->
+                    <h2 class="card-title">🎖️ 遊戲配置設定</h2>
+                    <!-- VIP row -->
                     <div class="setting-row" id="vip-level-row">
                         <label for="vip-select">VIP 等級</label>
                         <select id="vip-select" class="input-field styled-select">
@@ -110,7 +125,7 @@
                             <option value="6">VIP 6</option>
                         </select>
                     </div>
-                    <!-- Platform row: 滿貫大亨顯示，競技麻將2隱藏 -->
+                    <!-- Platform row -->
                     <div class="setting-row" id="platform-row">
                         <label for="platform-select">平台</label>
                         <select id="platform-select" class="input-field styled-select">
@@ -120,21 +135,45 @@
                             <option value="ios_white">iOS白</option>
                         </select>
                     </div>
-                    <!-- 儲值項目 row: 競技麻將2專用，替代VIP/平台 -->
+                    <!-- 儲值項目 row (競技麻將2專用) -->
                     <div class="setting-row" id="deposit-type-row" style="display:none">
                         <label for="deposit-type-select">儲值項目</label>
                         <select id="deposit-type-select" class="input-field styled-select">
-                            <option value="coins">金幣</option>
                             <option value="diamonds">鑽石</option>
+                            <option value="coins">金幣</option>
                         </select>
                     </div>
                 </section>
 
-                <!-- Bonus Config -->
-                <section class="card" id="bonus-config-card">
-                    <h2 class="card-title">🎁 品項加贈設定</h2>
-                    <p class="card-hint">點擊 ⚙ 設定各品項的加贈內容</p>
-                    <div id="bonus-config-list"></div>
+                <!-- Global Bonus Config -->
+                <section class="card" id="global-bonus-card" style="display:none">
+                    <div class="card-header-with-action">
+                        <h2 class="card-title">🎁 全局隨機加成設定</h2>
+                        <label class="switch-label">
+                            <input type="checkbox" id="enable-global-bonus">
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+                    <div id="global-bonus-settings" class="setting-group-vertical" style="display:none">
+                        <div class="setting-row">
+                            <label>加成範圍 (%)</label>
+                            <div class="range-inputs-compact">
+                                <input type="number" id="global-bonus-min" class="input-field no-spin" value="0"
+                                    min="0">
+                                <span class="range-separator">~</span>
+                                <input type="number" id="global-bonus-max" class="input-field no-spin" value="10"
+                                    min="0">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <label>加成間距 (%)</label>
+                            <input type="number" id="global-bonus-step" class="input-field no-spin" value="1" min="0.1"
+                                step="0.1">
+                        </div>
+                        <p class="setting-hint">儲值時將自動列出所有可能的加成結果</p>
+                    </div>
+                </section>
+
                 </section>
             </aside>
 
@@ -229,81 +268,19 @@
         </div>
     </main>
 
-    <!-- Bonus Config Modal -->
-    <div id="bonus-modal" class="modal-overlay" style="display:none">
+    <!-- Verification Modal (Select specific random result) -->
+    <div id="verification-modal" class="modal-overlay" style="display:none">
         <div class="modal">
             <div class="modal-header">
-                <h3>🎁 設定品項加贈 — <span id="bonus-modal-amount"></span> 元</h3>
-                <button class="modal-close" id="bonus-modal-close">&times;</button>
+                <h3>🔍 驗證加成結果 — <span id="verify-base-amount"></span> 元</h3>
+                <button class="modal-close" id="verification-modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <fieldset class="bonus-fieldset">
-                    <legend>💰 加贈財產</legend>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="asset-bonus-type" value="none" checked>
-                            <span class="radio-text">無加贈</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="asset-bonus-type" value="ratio">
-                            <span class="radio-text">依比例 (%)</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="asset-bonus-type" value="fixed">
-                            <span class="radio-text">固定金額</span>
-                        </label>
-                    </div>
-                    <div id="asset-bonus-value-group" class="bonus-value-group" style="display:none">
-                        <div class="input-with-unit">
-                            <input type="number" id="asset-bonus-value" class="input-field no-spin" min="0" step="any"
-                                value="0">
-                            <span class="unit" id="asset-bonus-unit">%</span>
-                        </div>
-                        <p class="bonus-preview" id="asset-bonus-preview"></p>
-                    </div>
-                </fieldset>
-                <fieldset class="bonus-fieldset">
-                    <legend>🎲 加贈道具</legend>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="item-bonus-type" value="none" checked>
-                            <span class="radio-text">無加贈</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="item-bonus-type" value="fixed">
-                            <span class="radio-text">固定數量</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="item-bonus-type" value="range">
-                            <span class="radio-text">隨機區間</span>
-                        </label>
-                    </div>
-                    <div id="item-bonus-fixed-group" class="bonus-value-group" style="display:none">
-                        <div class="input-with-unit">
-                            <input type="number" id="item-bonus-fixed" class="input-field no-spin" min="0" value="0">
-                            <span class="unit">個</span>
-                        </div>
-                    </div>
-                    <div id="item-bonus-range-group" class="bonus-value-group" style="display:none">
-                        <div class="range-inputs">
-                            <div class="input-with-unit">
-                                <label>最少</label>
-                                <input type="number" id="item-bonus-min" class="input-field no-spin" min="0" value="0">
-                                <span class="unit">個</span>
-                            </div>
-                            <span class="range-separator">~</span>
-                            <div class="input-with-unit">
-                                <label>最多</label>
-                                <input type="number" id="item-bonus-max" class="input-field no-spin" min="0" value="0">
-                                <span class="unit">個</span>
-                            </div>
-                        </div>
-                    </div>
-                </fieldset>
+                <p class="modal-instruction">請選取遊戲畫面上實際出現的結果：</p>
+                <div id="verify-option-list" class="verify-grid"></div>
             </div>
             <div class="modal-footer">
-                <button id="bonus-modal-save" class="btn btn-primary">💾 儲存</button>
-                <button id="bonus-modal-cancel" class="btn btn-secondary">取消</button>
+                <button id="verification-modal-cancel" class="btn btn-secondary">取消儲值</button>
             </div>
         </div>
     </div>
@@ -320,30 +297,18 @@
                     <label for="activity-name-input">活動名稱</label>
                     <input type="text" id="activity-name-input" class="input-field" placeholder="例如：春節儲值活動">
                 </div>
+                <div class="setting-row">
+                    <label for="activity-game-input">遊戲類型</label>
+                    <select id="activity-game-input" class="input-field styled-select">
+                        <option value="game_a">滿貫大亨</option>
+                        <option value="mahjong2">競技麻將2</option>
+                        <option value="star_3_in_1">明星三缺一</option>
+                    </select>
+                </div>
             </div>
             <div class="modal-footer">
                 <button id="activity-modal-save" class="btn btn-primary">確認</button>
                 <button id="activity-modal-cancel" class="btn btn-secondary">取消</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Range Item Bonus Input Modal -->
-    <div id="range-input-modal" class="modal-overlay" style="display:none">
-        <div class="modal modal-sm">
-            <div class="modal-header">
-                <h3>🎲 輸入加贈道具數量</h3>
-            </div>
-            <div class="modal-body">
-                <p class="range-info">此品項的加贈道具為隨機區間：<strong id="range-display"></strong></p>
-                <div class="setting-row">
-                    <label for="range-actual-input">實際獲得數量</label>
-                    <input type="number" id="range-actual-input" class="input-field no-spin" min="0">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="range-input-confirm" class="btn btn-primary">確認儲值</button>
-                <button id="range-input-cancel" class="btn btn-secondary">取消</button>
             </div>
         </div>
     </div>
@@ -364,7 +329,7 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=1.1"></script>
 </body>
 
 </html>
