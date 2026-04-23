@@ -7,99 +7,177 @@ const GAME_VIP_DATA = {
         label: '大滿貫（紅鑽）',
         currencyNote: '道具單位：紅鑽',
         platforms: {
-            win_apk: {
-                label: 'WIN / APK',
-                vip: {
-                    0: [30, 60, 150, 300, 450, 900, 1500, 3000],
-                    1: [30, 60, 150, 300, 450, 900, 1500, 3000],
-                    2: [60, 150, 300, 450, 900, 1500, 3000, 5000],
-                    3: [60, 150, 300, 450, 900, 1500, 3000, 5000],
-                    4: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
-                    5: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
-                    6: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
-                },
-            },
-            android: {
-                label: '安卓',
-                vip: {
-                    0: [30, 60, 150, 300, 450, 900, 1500, 3000],
-                    1: [30, 60, 150, 300, 450, 900, 1500, 3000],
-                    2: [60, 150, 300, 450, 900, 1500, 3000, 5000],
-                    3: [60, 150, 300, 450, 900, 1500, 3000, 5000],
-                    4: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
-                    5: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
-                    6: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
-                },
-            },
-            ios: {
-                label: 'iOS',
-                vip: {
-                    0: [33, 70, 170, 330, 490, 990, 1690, 3290],
-                    1: [33, 70, 170, 330, 490, 990, 1690, 3290],
-                    2: [70, 170, 330, 490, 990, 1690, 3290, 5490],
-                    3: [70, 170, 330, 490, 990, 1690, 3290, 5490],
-                    4: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
-                    5: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
-                    6: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
-                },
-            },
-            ios_white: {
-                label: 'iOS白',
-                vip: {
-                    0: [33, 70, 170, 330, 490, 990, 1690, 3290],
-                    1: [33, 70, 170, 330, 490, 990, 1690, 3290],
-                    2: [70, 170, 330, 490, 990, 1690, 3290, 5490],
-                    3: [70, 170, 330, 490, 990, 1690, 3290, 5490],
-                    4: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
-                    5: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
-                    6: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
-                },
-            },
+            official: { label: '官網 / 行動官網', vip: _gameAVipFixed() },
+            win_apk: { label: 'Windows / APK', vip: _gameAVip() },
+            android: { label: '安卓', vip: _gameAVip() },
+            ios: { label: 'iOS', vip: _gameAVipIOS() },
         },
     },
     mahjong2: {
         label: '競技麻將2（鑽石/金幣）',
         currencyNote: '儲值後獲得對應品項',
         noVip: true,
-        noPlatformDiff: true,
-        depositItemMeta: [
-            { amount: 70, coins: 70000000, diamonds: 70 },
-            { amount: 170, coins: 170000000, diamonds: 170 },
-            { amount: 330, coins: 330000000, diamonds: 330 },
-            { amount: 490, coins: 490000000, diamonds: 490 },
-            { amount: 670, coins: 670000000, diamonds: 670 },
-            { amount: 990, coins: 990000000, diamonds: 990 },
-            { amount: 1690, coins: 1690000000, diamonds: 1690 },
-            { amount: 2490, coins: 2490000000, diamonds: 2490 },
-            { amount: 3290, coins: 3290000000, diamonds: 3290 },
-        ],
+        noPlatformDiff: false,
         platforms: {
-            win_apk: { label: 'WIN / APK', vip: _mahjong2Vip() },
-            android: { label: '安卓', vip: _mahjong2Vip() },
-            ios: { label: 'iOS', vip: _mahjong2Vip() },
-            ios_white: { label: 'iOS白', vip: _mahjong2Vip() },
+            official: {
+                label: '官網',
+                depositItemMeta: {
+                    diamonds: [
+                        { amount: 70, qty: 70, bonus: 0, unit: '鑽石' },
+                        { amount: 170, qty: 170, bonus: 0, unit: '鑽石' },
+                        { amount: 330, qty: 330, bonus: 0, unit: '鑽石' },
+                        { amount: 490, qty: 490, bonus: 0, unit: '鑽石' },
+                        { amount: 670, qty: 670, bonus: 0, unit: '鑽石' },
+                        { amount: 990, qty: 1040, bonus: 5, unit: '鑽石' },
+                        { amount: 1690, qty: 1859, bonus: 10, unit: '鑽石' },
+                        { amount: 2490, qty: 2860, bonus: 15, unit: '鑽石' },
+                        { amount: 3290, qty: 3948, bonus: 20, unit: '鑽石' },
+                        { amount: 5000, qty: 6250, bonus: 25, unit: '鑽石' },
+                        { amount: 10000, qty: 140000, bonus: 40, unit: '鑽石' }
+                    ],
+                    coins: [
+                        { amount: 70, qty: 70000000, bonus: 0, unit: '金幣' },
+                        { amount: 170, qty: 170000000, bonus: 0, unit: '金幣' },
+                        { amount: 330, qty: 330000000, bonus: 0, unit: '金幣' },
+                        { amount: 490, qty: 490000000, bonus: 0, unit: '金幣' },
+                        { amount: 670, qty: 703500000, bonus: 5, unit: '金幣' },
+                        { amount: 990, qty: 1039500000, bonus: 5, unit: '金幣' },
+                        { amount: 1690, qty: 1859000000, bonus: 10, unit: '金幣' },
+                        { amount: 2490, qty: 2739000000, bonus: 10, unit: '金幣' },
+                        { amount: 3290, qty: 3619000000, bonus: 10, unit: '金幣' }
+                    ]
+                }
+            },
+            win_apk: { label: 'Web版', depositItemMeta: _mahjong2OldMeta() },
+            android: { label: '安卓', depositItemMeta: _mahjong2OldMeta() },
+            ios: { label: 'iOS', depositItemMeta: _mahjong2OldMeta() },
         },
     },
     star_3_in_1: {
         label: '明星三缺一（紅利點數）',
         currencyNote: '紅利點數已於遊戲內獲得',
         noVip: true,
-        noPlatformDiff: true,
-        depositItemMeta: [], // 儲值品項待提供
+        noPlatformDiff: false,
+        milestoneSource: 'points',
+        milestoneUnit: '點',
         platforms: {
-            win_apk: { label: 'WIN / APK', vip: { 0: [] } },
-            android: { label: '安卓', vip: { 0: [] } },
-            ios: { label: 'iOS', vip: { 0: [] } },
-            ios_white: { label: 'iOS白', vip: { 0: [] } },
+            official: {
+                label: '官網',
+                depositItemMeta: {
+                    diamonds: [30, 50, 90, 100, 150, 300, 500, 600, 800, 1000, 1500, 2000, 3000, 5000, 6000, 10000, 20000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
+                    icoins: [
+                        { amount: 10, qty: 1000 }, { amount: 30, qty: 3000 }, { amount: 50, qty: 5000 },
+                        { amount: 90, qty: 9000 }, { amount: 100, qty: 10000 }, { amount: 150, qty: 15000 },
+                        { amount: 300, qty: 30000 }, { amount: 500, qty: 50000 }, { amount: 600, qty: 60000 },
+                        { amount: 800, qty: 80000 }, { amount: 1000, qty: 100000 }, { amount: 1500, qty: 150000 },
+                        { amount: 2000, qty: 200000 }, { amount: 3000, qty: 300000 }, { amount: 5000, qty: 500000 },
+                        { amount: 6000, qty: 600000 }, { amount: 10000, qty: 1000000 }, { amount: 20000, qty: 2000000 }
+                    ].map(v => ({ ...v, unit: 'i幣' }))
+                }
+            },
+            mobile_web: {
+                label: '行動官網',
+                depositItemMeta: {
+                    diamonds: [30, 50, 90, 100, 150, 250, 300, 500, 600, 800, 1000, 1500, 2000, 3000, 5000, 6000, 10000, 20000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
+                    icoins: [
+                        { amount: 30, qty: 3000 }, { amount: 50, qty: 5000 }, { amount: 90, qty: 9000 },
+                        { amount: 100, qty: 10000 }, { amount: 150, qty: 15000 }, { amount: 250, qty: 25000 },
+                        { amount: 300, qty: 30000 }, { amount: 500, qty: 50000 }, { amount: 600, qty: 60000 },
+                        { amount: 800, qty: 80000 }, { amount: 1000, qty: 100000 }, { amount: 1500, qty: 150000 },
+                        { amount: 2000, qty: 200000 }, { amount: 3000, qty: 300000 }, { amount: 5000, qty: 500000 },
+                        { amount: 6000, qty: 600000 }, { amount: 10000, qty: 1000000 }, { amount: 20000, qty: 2000000 }
+                    ].map(v => ({ ...v, unit: 'i幣' }))
+                }
+            },
+            ios: {
+                label: 'iOS',
+                depositItemMeta: {
+                    diamonds: [130, 330, 730, 1650, 3290, 6000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
+                    icoins: [
+                        { amount: 130, qty: 13000 }, { amount: 330, qty: 33000 }, { amount: 730, qty: 73000 },
+                        { amount: 1650, qty: 165000 }, { amount: 3290, qty: 329000 }, { amount: 6000, qty: 600000 }
+                    ].map(v => ({ ...v, unit: 'i幣' }))
+                }
+            },
+            android: {
+                label: '安卓',
+                depositItemMeta: {
+                    diamonds: [90, 300, 600, 1500, 3000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
+                    icoins: [
+                        { amount: 90, qty: 9000 }, { amount: 150, qty: 15000 }, { amount: 300, qty: 30000 },
+                        { amount: 600, qty: 60000 }, { amount: 1000, qty: 100000 }, { amount: 1500, qty: 150000 },
+                        { amount: 3000, qty: 300000 }, { amount: 6000, qty: 600000 }
+                    ].map(v => ({ ...v, unit: 'i幣' }))
+                }
+            },
+            win_apk: {
+                label: 'Windows / APK',
+                depositItemMeta: {
+                    diamonds: [90, 100, 150, 300, 500, 600, 800, 1000, 1500, 2000, 3000, 5000, 6000, 10000, 20000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
+                    icoins: [
+                        { amount: 90, qty: 9000 }, { amount: 100, qty: 10000 }, { amount: 150, qty: 15000 },
+                        { amount: 300, qty: 30000 }, { amount: 500, qty: 50000 }, { amount: 600, qty: 60000 },
+                        { amount: 800, qty: 80000 }
+                    ].map(v => ({ ...v, unit: 'i幣' }))
+                }
+            }
         },
     },
 };
+
+function _gameAVip() {
+    return {
+        0: [30, 60, 150, 300, 450, 900, 1500, 3000],
+        1: [30, 60, 150, 300, 450, 900, 1500, 3000],
+        2: [60, 150, 300, 450, 900, 1500, 3000, 5000],
+        3: [60, 150, 300, 450, 900, 1500, 3000, 5000],
+        4: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
+        5: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
+        6: [150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000],
+    };
+}
+
+function _gameAVipFixed() {
+    const amounts = [30, 60, 150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000];
+    const vipObj = {};
+    for (let i = 0; i <= 6; i++) vipObj[i] = amounts;
+    return vipObj;
+}
+
+function _gameAVipIOS() {
+    return {
+        0: [33, 70, 170, 330, 490, 990, 1690, 3290],
+        1: [33, 70, 170, 330, 490, 990, 1690, 3290],
+        2: [70, 170, 330, 490, 990, 1690, 3290, 5490],
+        3: [70, 170, 330, 490, 990, 1690, 3290, 5490],
+        4: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
+        5: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
+        6: [170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000],
+    };
+}
 
 function _mahjong2Vip() {
     const amounts = [70, 170, 330, 490, 670, 990, 1690, 2490, 3290];
     const vipObj = {};
     for (let i = 0; i <= 6; i++) vipObj[i] = amounts;
     return vipObj;
+}
+
+function _mahjong2OldMeta() {
+    return {
+        diamonds: [70, 170, 330, 490, 670, 990, 1690, 2490, 3290].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
+        coins: [
+            { amount: 70, qty: 70000000 },
+            { amount: 170, qty: 170000000 },
+            { amount: 330, qty: 330000000 },
+            { amount: 490, qty: 490000000 },
+            { amount: 670, qty: 670000000 },
+            { amount: 990, qty: 990000000 },
+            { amount: 1690, qty: 1690000000 },
+            { amount: 2490, qty: 2490000000 },
+            { amount: 3290, qty: 3290000000 },
+        ].map(v => ({ ...v, unit: '金幣' }))
+    };
 }
 
 const STORAGE_KEY = 'deposit_calculator_data_v3';
@@ -148,12 +226,27 @@ function getCurrentActivity() {
     return appState.activities.find(a => a.id === appState.currentActivityId) || null;
 }
 
+const GAME_CURRENCIES = {
+    game_a: [{ id: 'default', label: '紅鑽', short: '紅鑽' }],
+    mahjong2: [{ id: 'diamonds', label: '鑽石', short: '鑽石' }, { id: 'coins', label: '金幣', short: '金幣' }],
+    star_3_in_1: [
+        { id: 'diamonds', label: '鑽石', short: '鑽石' },
+        { id: 'icoins', label: 'i幣', short: 'i幣' }
+    ]
+};
+
 function getCurrentSession() {
     if (!appState.currentActivityId) return null;
-    if (!appState.sessions[appState.currentActivityId]) {
-        appState.sessions[appState.currentActivityId] = createDefaultSession();
+    let session = appState.sessions[appState.currentActivityId];
+    if (!session) {
+        session = createDefaultSession();
+        appState.sessions[appState.currentActivityId] = session;
     }
-    return appState.sessions[appState.currentActivityId];
+    // Backward compatibility & conversion to object
+    if (typeof session.initialAssets !== 'object' || session.initialAssets === null) {
+        session.initialAssets = { default: session.initialAssets || 0 };
+    }
+    return session;
 }
 
 // ===== 2. Storage =====
@@ -175,15 +268,26 @@ function loadState() {
 // ===== 3. Logic & Calculations =====
 function computeRecords(session, threshold) {
     let cumulativeDeposit = 0;
-    let currentAssets = session.initialAssets;
+
+    // Copy initial assets into an isolated state object
+    let currentAssets = { ...session.initialAssets };
     let totalBonusItems = 0;
     const computed = [];
 
     for (let i = 0; i < session.records.length; i++) {
         const rec = session.records[i];
+        const baseAssets = rec.baseAssets !== undefined ? rec.baseAssets : rec.depositAmount;
+        const cType = rec.currencyType || 'default';
+        const cUnit = rec.currencyUnit || '';
+
         const prevCumulative = cumulativeDeposit;
         cumulativeDeposit += rec.depositAmount;
-        currentAssets += rec.depositAmount + rec.bonusAssets;
+
+        if (currentAssets[cType] === undefined) {
+            currentAssets[cType] = 0;
+        }
+        currentAssets[cType] += baseAssets + rec.bonusAssets;
+
         totalBonusItems += rec.bonusItems;
 
         const prevMilestone = threshold > 0 ? Math.floor(prevCumulative / threshold) : 0;
@@ -191,11 +295,16 @@ function computeRecords(session, threshold) {
         const newMilestoneItems = currMilestone - prevMilestone;
 
         computed.push({
+            ...rec,
             index: i + 1,
             depositAmount: rec.depositAmount,
+            baseAssets: baseAssets,
             bonusAssets: rec.bonusAssets,
             bonusItems: rec.bonusItems,
-            assetsAfter: currentAssets,
+            depositedAssets: baseAssets + rec.bonusAssets,
+            assetsAfter: currentAssets[cType],
+            currencyType: cType,
+            currencyUnit: cUnit,
             cumulativeDeposit: cumulativeDeposit,
             newMilestoneItems: newMilestoneItems,
             totalMilestoneItems: currMilestone,
@@ -236,7 +345,7 @@ const els = {
     mainContent: $('main-content'),
 
     thresholdAmount: $('threshold-amount'),
-    initialAssets: $('initial-assets'),
+    initialAssetsContainer: $('initial-assets-container'),
     initialItems: $('initial-items'),
     vipSelect: $('vip-select'),
     platformSelect: $('platform-select'),
@@ -246,14 +355,13 @@ const els = {
     depositTypeSelect: $('deposit-type-select'),
 
     enableGlobalBonus: $('enable-global-bonus'),
-    globalBonusCard: $('global-bonus-card'),
+    bonusMergedCard: $('bonus-merged-card'),
     globalBonusSettings: $('global-bonus-settings'),
     globalBonusMin: $('global-bonus-min'),
     globalBonusMax: $('global-bonus-max'),
     globalBonusStep: $('global-bonus-step'),
 
     enableChannelBonus: $('enable-channel-bonus'),
-    channelBonusCard: $('channel-bonus-card'),
     channelBonusSettings: $('channel-bonus-settings'),
     channelBonusRate: $('channel-bonus-rate'),
 
@@ -267,6 +375,14 @@ const els = {
     nextMilestoneDisplay: $('next-milestone-display'),
     milestoneItemsDisplay: $('milestone-items-display'),
     totalItemsDisplay: $('total-items-display'),
+    milestoneProgressFill: $('milestone-progress-fill'),
+    statusGrid: $('status-premium-grid'),
+    cardDiamonds: $('status-card-diamonds'),
+    cardCoins: $('status-card-coins'),
+    valueDiamonds: $('value-diamonds'),
+    labelDiamonds: $('label-diamonds'),
+    valueCoins: $('value-coins'),
+    labelCoins: $('label-coins'),
 
     recordTbody: $('record-tbody'),
     emptyRecords: $('empty-records'),
@@ -301,6 +417,9 @@ const els = {
     confirmMessage: $('confirm-message'),
     confirmYes: $('confirm-yes'),
     confirmNo: $('confirm-no'),
+
+    verifyPointOptionsContainer: $('verify-point-options-container'),
+    verifyPointGrid: $('verify-point-grid'),
 };
 
 // ===== 5. UI Rendering =====
@@ -316,9 +435,35 @@ function renderSettings() {
     if (!activity || !session) return;
 
     els.thresholdAmount.value = activity.threshold;
-    els.initialAssets.value = session.initialAssets;
+
+    // Render dynamic asset inputs
+    els.initialAssetsContainer.innerHTML = '';
+    const gameCurrencies = GAME_CURRENCIES[activity.game] || GAME_CURRENCIES['game_a'];
+    gameCurrencies.forEach(currency => {
+        const row = document.createElement('div');
+        row.className = 'setting-row';
+        row.innerHTML = `
+            <label for="initial-assets-${currency.id}">${currency.label}</label>
+            <input type="number" id="initial-assets-${currency.id}" data-type="${currency.id}" min="0" value="${session.initialAssets[currency.id] || 0}" class="input-field no-spin initial-asset-input">
+        `;
+        els.initialAssetsContainer.appendChild(row);
+    });
+    // Re-attach input restriction events for new dynamic ones
+    els.initialAssetsContainer.querySelectorAll('.initial-asset-input').forEach(enforcePositiveInteger);
+
     els.initialItems.value = session.initialItems;
     els.vipSelect.value = session.vipLevel;
+    // 依目前遙戲動態產生平台選項
+    const gameInfo = GAME_VIP_DATA[activity.game];
+    if (gameInfo && gameInfo.platforms) {
+        els.platformSelect.innerHTML = Object.entries(gameInfo.platforms)
+            .map(([key, plat]) => `<option value="${key}">${plat.label}</option>`)
+            .join('');
+        if (!gameInfo.platforms[session.platform]) {
+            session.platform = Object.keys(gameInfo.platforms)[0];
+            saveState();
+        }
+    }
     els.platformSelect.value = session.platform;
     els.depositTypeSelect.value = session.depositType;
 
@@ -335,10 +480,37 @@ function renderSettings() {
     const isMahjong2 = activity.game === 'mahjong2';
     const isStar3in1 = activity.game === 'star_3_in_1';
     els.vipLevelRow.style.display = (isMahjong2 || isStar3in1) ? 'none' : 'flex';
-    els.platformRow.style.display = (isMahjong2 || isStar3in1) ? 'none' : 'flex';
-    els.depositTypeRow.style.display = isMahjong2 ? 'flex' : 'none';
-    els.channelBonusCard.style.display = isStar3in1 ? 'block' : 'none';
-    els.globalBonusCard.style.display = isStar3in1 ? 'block' : 'none';
+    els.platformRow.style.display = 'flex';
+    els.depositTypeRow.style.display = (isMahjong2 || isStar3in1) ? 'flex' : 'none';
+
+    if (isStar3in1) {
+        const options = `
+            <option value="diamonds">鑽石</option>
+            <option value="icoins">i幣</option>
+        `;
+        if (els.depositTypeSelect.innerHTML !== options) {
+            els.depositTypeSelect.innerHTML = options;
+            els.depositTypeSelect.value = session.depositType || 'diamonds';
+        }
+    } else if (isMahjong2) {
+        const options = `
+            <option value="diamonds">鑽石</option>
+            <option value="coins">金幣</option>
+        `;
+        if (els.depositTypeSelect.innerHTML !== options) {
+            els.depositTypeSelect.innerHTML = options;
+            els.depositTypeSelect.value = session.depositType || 'diamonds';
+        }
+    }
+
+    // Toggle custom threshold UI for star_3_in_1
+    const defaultThresholdRow = document.getElementById('default-threshold-row');
+    const star3ThresholdRow = document.getElementById('star3-threshold-row');
+    if (defaultThresholdRow) defaultThresholdRow.style.display = isStar3in1 ? 'none' : 'block';
+    if (star3ThresholdRow) star3ThresholdRow.style.display = isStar3in1 ? 'block' : 'none';
+
+    // Show/hide merged bonus card (star_3_in_1 only)
+    if (els.bonusMergedCard) els.bonusMergedCard.style.display = isStar3in1 ? 'block' : 'none';
 }
 
 function renderDepositButtons() {
@@ -349,34 +521,63 @@ function renderDepositButtons() {
     const gameInfo = GAME_VIP_DATA[activity.game];
     const platform = session.platform;
     const vip = session.vipLevel;
-    const amounts = gameInfo?.platforms?.[platform]?.vip?.[vip] || [];
+    const isMahjong2 = activity.game === 'mahjong2';
+    const isStar3in1 = activity.game === 'star_3_in_1';
 
     els.currencyNote.textContent = gameInfo?.currencyNote || '';
     els.depositButtons.innerHTML = '';
+
+    let amounts = [];
+    let itemsMeta = [];
+
+    if (isStar3in1 || isMahjong2) {
+        const type = session.depositType || 'diamonds';
+        itemsMeta = gameInfo.platforms[platform]?.depositItemMeta?.[type] || [];
+        amounts = itemsMeta.map(m => m.amount);
+    } else {
+        amounts = gameInfo?.platforms?.[platform]?.vip?.[vip] || [];
+    }
 
     if (amounts.length === 0) {
         els.depositButtons.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; padding: 2rem; color: var(--text-muted);">🚩 儲值品項待提供，可使用下方的客製化儲值進行計算</div>';
         return;
     }
 
+    const curType = (isStar3in1 || isMahjong2) ? (session.depositType || 'diamonds') : 'default';
+    const currencyInfo = GAME_CURRENCIES[activity.game]?.find(c => c.id === curType);
+    const curUnit = currencyInfo ? currencyInfo.short : '';
+
     amounts.forEach(amount => {
         const btn = document.createElement('button');
         btn.className = 'deposit-btn';
 
-        if (activity.game === 'mahjong2') {
-            const meta = gameInfo.depositItemMeta.find(m => m.amount === amount);
-            const isCoins = session.depositType === 'coins';
-            const assetAmount = isCoins ? meta.coins : meta.diamonds;
+        let baseAssets = amount;
+        let builtInBonusAssets = 0;
+
+        if (isMahjong2 || isStar3in1) {
+            const meta = itemsMeta.find(m => m.amount === amount);
+            if (!meta) return;
+
+            if (meta.qty) {
+                if (meta.bonus) {
+                    baseAssets = Math.round(meta.qty / (1 + meta.bonus / 100));
+                    builtInBonusAssets = meta.qty - baseAssets;
+                } else {
+                    baseAssets = meta.qty;
+                    builtInBonusAssets = 0;
+                }
+            }
 
             btn.innerHTML = `
+                ${meta.bonus ? `<span class="bonus-label">+${meta.bonus}%</span>` : ''}
                 <span class="ntd-amount">${amount} NTD</span>
-                <span class="asset-amount">${formatNumber(assetAmount)}</span>
+                <span class="asset-amount">${formatNumber(meta.qty)} ${meta.unit}</span>
             `;
         } else {
             btn.innerHTML = `<span class="amount">${formatNumber(amount)}</span>`;
         }
 
-        btn.addEventListener('click', () => handleDepositTrigger(amount));
+        btn.addEventListener('click', () => handleDepositTrigger(amount, baseAssets, builtInBonusAssets, curType, curUnit));
         els.depositButtons.appendChild(btn);
     });
 }
@@ -397,12 +598,51 @@ function renderStatus() {
     const session = getCurrentSession();
     if (!activity || !session) return;
 
+    renderDepositButtons();
     const result = computeRecords(session, activity.threshold);
-    els.currentAssetsDisplay.textContent = formatNumber(result.currentAssets);
-    els.cumulativeDepositDisplay.textContent = formatNumber(result.cumulativeDeposit);
-    els.nextMilestoneDisplay.textContent = formatNumber(result.nextMilestoneDiff);
-    els.milestoneItemsDisplay.textContent = formatNumber(result.totalMilestoneItems);
-    els.totalItemsDisplay.textContent = formatNumber(result.totalItems);
+
+    // --- Update Premium Status Cards ---
+    const gameCurrencies = GAME_CURRENCIES[activity.game] || GAME_CURRENCIES['game_a'];
+
+    // If only 1 major currency (plus total card = 2 cards), center them
+    if (els.statusGrid) {
+        if (gameCurrencies.length === 1) {
+            els.statusGrid.classList.add('centered-grid');
+        } else {
+            els.statusGrid.classList.remove('centered-grid');
+        }
+    }
+
+    if (els.cardDiamonds && els.valueDiamonds) {
+        // First currency always goes to cardDiamonds
+        const c0 = gameCurrencies[0];
+        if (els.labelDiamonds) els.labelDiamonds.textContent = `當前${c0.short}`;
+        els.valueDiamonds.textContent = formatNumber(result.currentAssets[c0.id] || 0);
+
+        // Second currency (if any) goes to cardCoins
+        if (gameCurrencies.length > 1 && els.cardCoins && els.valueCoins) {
+            const c1 = gameCurrencies[1];
+            els.cardCoins.style.display = 'flex';
+            if (els.labelCoins) els.labelCoins.textContent = `當前${c1.short}`;
+            els.valueCoins.textContent = formatNumber(result.currentAssets[c1.id] || 0);
+        } else if (els.cardCoins) {
+            els.cardCoins.style.display = 'none';
+        }
+    }
+
+    // --- Update Common Status Fields ---
+    if (els.cumulativeDepositDisplay) els.cumulativeDepositDisplay.textContent = formatNumber(result.cumulativeDeposit);
+    if (els.nextMilestoneDisplay) els.nextMilestoneDisplay.textContent = formatNumber(result.nextMilestoneDiff);
+    if (els.milestoneItemsDisplay) els.milestoneItemsDisplay.textContent = formatNumber(result.totalMilestoneItems);
+    if (els.totalItemsDisplay) els.totalItemsDisplay.textContent = formatNumber(result.totalItems);
+
+    // --- Update Progress Bar ---
+    if (els.milestoneProgressFill && activity.threshold > 0) {
+        const progress = Math.min(100, Math.max(0, ((activity.threshold - result.nextMilestoneDiff) / activity.threshold) * 100));
+        els.milestoneProgressFill.style.width = `${progress}%`;
+    } else if (els.milestoneProgressFill) {
+        els.milestoneProgressFill.style.width = '0%';
+    }
 }
 
 function renderRecords() {
@@ -428,9 +668,9 @@ function renderRecords() {
             <td class="col-check"><input type="checkbox" data-index="${rec.index - 1}"></td>
             <td>${rec.index}</td>
             <td>${formatNumber(rec.depositAmount)}</td>
-            <td>${rec.bonusAssets > 0 ? '+' + formatNumber(rec.bonusAssets) : '-'}</td>
+            <td>${rec.bonusAssets > 0 ? '+' + formatNumber(rec.bonusAssets) + (rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : '') : '-'}</td>
             <td>${rec.bonusItems > 0 ? '+' + formatNumber(rec.bonusItems) : '-'}</td>
-            <td>${formatNumber(rec.assetsAfter)}</td>
+            <td>${formatNumber(rec.depositedAssets)}${rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : ''}</td>
             <td>${formatNumber(rec.cumulativeDeposit)}</td>
             <td class="${rec.newMilestoneItems > 0 ? 'milestone-new' : ''}">${rec.newMilestoneItems > 0 ? '+' + rec.newMilestoneItems : '-'}</td>
             <td>${formatNumber(rec.totalMilestoneItems)}</td>
@@ -441,25 +681,53 @@ function renderRecords() {
 
     els.paginationBar.style.display = totalPages > 1 ? 'flex' : 'none';
     els.pageInfo.textContent = `第 ${currentPage} / ${totalPages} 頁 (共 ${computed.length} 筆)`;
+    els.btnPageFirst.disabled = currentPage === 1;
+    els.btnPagePrev.disabled = currentPage === 1;
+    els.btnPageNext.disabled = currentPage >= totalPages;
+    els.btnPageLast.disabled = currentPage >= totalPages;
+
+    // Reset multi-select states on re-render
+    els.selectAllRecords.checked = false;
+    els.btnDeleteSelected.disabled = true;
 }
 
 // ===== 6. Deposit Handling =====
-function handleDepositTrigger(amount) {
+function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 0, currencyType = null, currencyUnit = null) {
     const activity = getCurrentActivity();
+    const session = getCurrentSession();
+
+    // Resolve defaults for multi-currency games if not provided
+    if (!currencyType) {
+        currencyType = (activity.game === 'mahjong2' || activity.game === 'star_3_in_1') ? (session.depositType || 'diamonds') : 'default';
+    }
+    if (currencyUnit === null) {
+        const currencyInfo = GAME_CURRENCIES[activity.game]?.find(c => c.id === currencyType);
+        currencyUnit = currencyInfo ? currencyInfo.short : '';
+    }
+
     if (activity.enableGlobalBonus) {
-        openVerificationModal(amount);
+        openVerificationModal(amount, baseAssets, builtInBonusAssets, currencyType, currencyUnit);
     } else {
-        const bonusAssets = (activity.enableChannelBonus && activity.channelBonusRate)
-            ? Math.floor(amount * (activity.channelBonusRate / 100))
+        const channelBonusAssets = (activity.enableChannelBonus && activity.channelBonusRate)
+            ? Math.floor(baseAssets * (activity.channelBonusRate / 100))
             : 0;
-        addRecord(amount, bonusAssets, 0);
+        addRecord(amount, baseAssets, builtInBonusAssets + channelBonusAssets, 0, currencyType, currencyUnit);
     }
 }
 
-function openVerificationModal(amount) {
+function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets = 0, currencyType = 'default', currencyUnit = '') {
     const activity = getCurrentActivity();
+    const isStar3in1 = activity.game === 'star_3_in_1';
     els.verifyBaseAmount.textContent = formatNumber(amount);
     els.verifyOptionList.innerHTML = '';
+
+    // Update modal instruction text
+    const instruction = document.querySelector('#verification-modal .modal-instruction');
+    if (instruction) {
+        instruction.textContent = isStar3in1
+            ? '請選擇遊戲實際顯示的冬季紅利點數結果：'
+            : '請選取遊戲畫面上實際出現的結果：';
+    }
 
     const baseMin = activity.globalBonusMin;
     const baseMax = activity.globalBonusMax;
@@ -468,15 +736,27 @@ function openVerificationModal(amount) {
 
     for (let p = baseMin; p <= baseMax; p += step) {
         const totalP = p + channelBonusRate;
-        const bonusAssets = Math.floor(amount * (totalP / 100));
+        const modalBonusAssets = Math.floor(baseAssets * (totalP / 100));
+        const totalAssets = baseAssets + builtInBonusAssets + modalBonusAssets;
         const btn = document.createElement('div');
         btn.className = 'verify-btn';
-        btn.innerHTML = `
-            <span class="verify-amount">${formatNumber(amount + bonusAssets)}</span>
-            <span class="verify-label">+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道)</span>
-        `;
+
+        if (isStar3in1) {
+            const rateLabel = channelBonusRate > 0
+                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)`
+                : `+${totalP}% 隨機加成`;
+            btn.innerHTML = `
+                <span class="verify-amount">${formatNumber(totalAssets)} 點</span>
+                <span class="verify-label">${rateLabel}</span>
+            `;
+        } else {
+            btn.innerHTML = `
+                <span class="verify-amount">${formatNumber(totalAssets)}</span>
+                <span class="verify-label">+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道)</span>
+            `;
+        }
         btn.onclick = () => {
-            addRecord(amount, bonusAssets, 0);
+            addRecord(amount, baseAssets, builtInBonusAssets + modalBonusAssets, 0, currencyType, currencyUnit);
             closeVerificationModal();
         };
         els.verifyOptionList.appendChild(btn);
@@ -486,9 +766,9 @@ function openVerificationModal(amount) {
 
 function closeVerificationModal() { els.verificationModal.style.display = 'none'; }
 
-function addRecord(amount, bonusAssets, bonusItems) {
+function addRecord(amount, baseAssets, bonusAssets, bonusItems, currencyType = 'default', currencyUnit = '') {
     const session = getCurrentSession();
-    session.records.push({ depositAmount: amount, bonusAssets, bonusItems });
+    session.records.push({ depositAmount: amount, baseAssets, bonusAssets, bonusItems, currencyType, currencyUnit });
     saveState();
     renderStatus();
     currentPage = Math.ceil(session.records.length / PAGE_SIZE);
@@ -501,6 +781,12 @@ function buildCustomSelectOptions() {
     dropdown.innerHTML = '';
     if (appState.activities.length === 0) {
         els.activitySelectText.textContent = '— 請先新增活動 —';
+        const opt = document.createElement('div');
+        opt.className = 'custom-select-option';
+        opt.style.cursor = 'default';
+        opt.style.color = 'var(--text-muted)';
+        opt.textContent = '— 請先新增活動 —';
+        dropdown.appendChild(opt);
     } else {
         const current = getCurrentActivity();
         els.activitySelectText.textContent = current ? current.name : '— 請選擇活動 —';
@@ -519,6 +805,24 @@ function buildCustomSelectOptions() {
     }
 }
 
+// Input restrictions
+const enforcePositiveInteger = (input) => {
+    input.addEventListener('keydown', (e) => {
+        if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+            e.preventDefault();
+        }
+    });
+    input.addEventListener('paste', (e) => {
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        if (/[^0-9]/.test(pastedText)) {
+            e.preventDefault();
+        }
+    });
+    input.addEventListener('input', (e) => {
+        if (e.target.value < 0) e.target.value = Math.abs(e.target.value);
+    });
+};
+
 // ===== 8. Event Listeners =====
 function initEvents() {
     // Activity Select
@@ -527,6 +831,8 @@ function initEvents() {
         els.activitySelectDropdown.classList.toggle('open');
     };
     document.onclick = () => els.activitySelectDropdown.classList.remove('open');
+
+    [els.thresholdAmount, els.initialItems, els.customAmount].forEach(enforcePositiveInteger);
 
     // Modals
     els.btnNewActivity.onclick = () => openActivityModal('new');
@@ -560,7 +866,15 @@ function initEvents() {
 
     // Settings sync
     els.thresholdAmount.onchange = () => { getCurrentActivity().threshold = parseInt(els.thresholdAmount.value) || 0; saveState(); renderStatus(); renderRecords(); };
-    els.initialAssets.onchange = () => { getCurrentSession().initialAssets = parseInt(els.initialAssets.value) || 0; saveState(); renderStatus(); renderRecords(); };
+    els.initialAssetsContainer.onchange = (e) => {
+        if (e.target.classList.contains('initial-asset-input')) {
+            const type = e.target.dataset.type;
+            getCurrentSession().initialAssets[type] = parseInt(e.target.value) || 0;
+            saveState();
+            renderStatus();
+            renderRecords();
+        }
+    };
     els.initialItems.onchange = () => { getCurrentSession().initialItems = parseInt(els.initialItems.value) || 0; saveState(); renderStatus(); renderRecords(); };
     els.vipSelect.onchange = () => { getCurrentSession().vipLevel = parseInt(els.vipSelect.value); saveState(); renderDepositButtons(); };
     els.platformSelect.onchange = () => { getCurrentSession().platform = els.platformSelect.value; saveState(); renderDepositButtons(); };
@@ -581,6 +895,56 @@ function initEvents() {
     els.verificationModalCancel.onclick = els.verificationModalClose.onclick = closeVerificationModal;
 
     // Record actions
+    const changePage = (step) => {
+        const session = getCurrentSession();
+        if (!session) return;
+        const totalPages = Math.max(1, Math.ceil(session.records.length / PAGE_SIZE));
+        let newPage = currentPage;
+        if (step === 'first') newPage = 1;
+        else if (step === 'prev') newPage = Math.max(1, currentPage - 1);
+        else if (step === 'next') newPage = Math.min(totalPages, currentPage + 1);
+        else if (step === 'last') newPage = totalPages;
+
+        if (newPage !== currentPage) {
+            currentPage = newPage;
+            renderRecords();
+        }
+    };
+    els.btnPageFirst.onclick = () => changePage('first');
+    els.btnPagePrev.onclick = () => changePage('prev');
+    els.btnPageNext.onclick = () => changePage('next');
+    els.btnPageLast.onclick = () => changePage('last');
+
+    els.selectAllRecords.onchange = (e) => {
+        const checkboxes = els.recordTbody.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+        els.btnDeleteSelected.disabled = !e.target.checked || checkboxes.length === 0;
+    };
+
+    els.recordTbody.addEventListener('change', (e) => {
+        if (e.target.type === 'checkbox') {
+            const allBoxes = els.recordTbody.querySelectorAll('input[type="checkbox"]');
+            const checkedBoxes = els.recordTbody.querySelectorAll('input[type="checkbox"]:checked');
+            els.selectAllRecords.checked = (allBoxes.length > 0 && allBoxes.length === checkedBoxes.length);
+            els.btnDeleteSelected.disabled = checkedBoxes.length === 0;
+        }
+    });
+
+    els.btnDeleteSelected.onclick = () => {
+        const checkedBoxes = els.recordTbody.querySelectorAll('input[type="checkbox"]:checked');
+        if (!checkedBoxes.length) return;
+
+        openConfirmModal(`確定刪除這 ${checkedBoxes.length} 筆紀錄？`, () => {
+            const session = getCurrentSession();
+            const indices = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.index)).sort((a, b) => b - a);
+            indices.forEach(idx => session.records.splice(idx, 1));
+
+            saveState();
+            renderStatus();
+            renderRecords();
+        });
+    };
+
     els.btnUndo.onclick = () => { getCurrentSession().records.pop(); saveState(); renderStatus(); renderRecords(); };
     els.btnClear.onclick = () => openConfirmModal('確定清空所有紀錄？', () => { getCurrentSession().records = []; saveState(); renderStatus(); renderRecords(); });
 

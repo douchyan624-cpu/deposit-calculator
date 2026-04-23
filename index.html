@@ -9,7 +9,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="index.css?v=1.1">
+    <link rel="stylesheet" href="index.css?v=1.6">
 </head>
 
 <body>
@@ -62,56 +62,124 @@
             <!-- Left Column: Settings -->
             <aside id="settings-column" data-cache-bust="v12345">
                 <!-- Channel Bonus Config -->
-                <section class="card" id="channel-bonus-card" style="display:none">
-                    <div class="card-header-with-action">
-                        <h2 class="card-title">💳 渠道加成設定</h2>
-                        <label class="switch-label">
+                <!-- Bonus Config (Star 3 in 1 only — merged card) -->
+                <section class="card" id="bonus-merged-card" style="display:none">
+
+                    <!-- Random Bonus -->
+                    <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">🎲 隨機點數加成</h2>
+                            <div class="info-tooltip-container">
+                                <span class="info-icon">i</span>
+                                <div class="info-tooltip-text">儲值時將列出所有可能的點數加成結果供確認</div>
+                            </div>
+                        </div>
+                        <label class="switch-label" style="margin-top:8px;">
+                            <input type="checkbox" id="enable-global-bonus">
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+                    <div id="global-bonus-settings" class="setting-group-vertical"
+                        style="display:none;margin-top:0.5rem;">
+                        <div class="setting-row">
+                            <label>加成範圍 (%)</label>
+                            <div class="range-inputs-compact">
+                                <input type="number" id="global-bonus-min" class="input-field no-spin" value="0"
+                                    min="0">
+                                <span class="range-separator">~</span>
+                                <input type="number" id="global-bonus-max" class="input-field no-spin" value="10"
+                                    min="0">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <label>加成間距 (%)</label>
+                            <input type="number" id="global-bonus-step" class="input-field no-spin" value="1" min="0.1"
+                                step="0.1">
+                        </div>
+                    </div>
+
+                    <div style="border-top:1px solid rgba(255,255,255,0.07);margin:0.75rem 0;"></div>
+
+                    <!-- Channel Bonus -->
+                    <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">💳 渠道額外加贈</h2>
+                            <div class="info-tooltip-container">
+                                <span class="info-icon">i</span>
+                                <div class="info-tooltip-text">適用「信用卡」、「iPASS一卡通」、「LINE Pay」儲值</div>
+                            </div>
+                        </div>
+                        <label class="switch-label" style="margin-top:8px;">
                             <input type="checkbox" id="enable-channel-bonus">
                             <span class="switch-slider"></span>
                         </label>
                     </div>
-                    <div id="channel-bonus-settings" class="setting-group-vertical" style="display:none">
+                    <div id="channel-bonus-settings" class="setting-group-vertical"
+                        style="display:none;margin-top:0.5rem;">
                         <div class="setting-row">
-                            <label for="channel-bonus-rate">加成比例</label>
+                            <label for="channel-bonus-rate">加贈比例</label>
                             <div class="input-with-unit">
                                 <input type="number" id="channel-bonus-rate" class="input-field no-spin" value="5"
                                     min="0" step="0.1">
                                 <span class="unit">%</span>
                             </div>
                         </div>
-                        <p class="setting-hint">適用於信用卡、iPASS、LINE Pay等管道</p>
                     </div>
                 </section>
 
                 <!-- Threshold Settings -->
                 <section class="card" id="threshold-card">
                     <h2 class="card-title">⚙️ 滿額門檻</h2>
-                    <div class="setting-row">
-                        <label for="threshold-amount">每累計儲值</label>
-                        <div class="input-with-unit">
-                            <input type="number" id="threshold-amount" min="1" value="1000" class="input-field no-spin">
-                            <span class="unit">元</span>
+                    <div id="default-threshold-row">
+                        <div class="setting-row">
+                            <label for="threshold-amount" id="threshold-label">每累計儲值</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="threshold-amount" min="1" value="1000"
+                                    class="input-field no-spin">
+                                <span class="unit" id="threshold-unit">元</span>
+                            </div>
+                            <span class="setting-hint" id="threshold-hint">送 1 個道具</span>
                         </div>
-                        <span class="setting-hint">送 1 個道具</span>
+                    </div>
+                    <div id="star3-threshold-row" style="display: none; padding-top: 15px;">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-bottom: 12px; cursor: pointer; line-height: 1.5; color: var(--text-primary);">
+                            <input type="radio" name="star3_threshold_type" value="diamonds" checked
+                                style="margin-top: 2px;">
+                            <div>購買 <input type="text" id="star3-threshold-diamonds" class="input-field compact no-spin"
+                                    style="width: 50px; display: inline-block; padding: 2px 6px; height: auto; font-size: 0.95rem; vertical-align: middle; margin: 0 4px;"
+                                    value="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')"> 鑽石 贈隨機加成點數</div>
+                        </label>
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; line-height: 1.5; color: var(--text-primary);">
+                            <input type="radio" name="star3_threshold_type" value="icoins" style="margin-top: 2px;">
+                            <div>購買 <input type="text" id="star3-threshold-icoins" class="input-field compact no-spin"
+                                    style="width: 60px; display: inline-block; padding: 2px 6px; height: auto; font-size: 0.95rem; vertical-align: middle; margin: 0 4px;"
+                                    value="100" oninput="this.value = this.value.replace(/[^0-9]/g, '')"> i幣 贈隨機加成點數
+                            </div>
+                        </label>
                     </div>
                 </section>
 
                 <!-- Player State -->
                 <section class="card" id="player-card">
                     <h2 class="card-title">👤 玩家初始狀態</h2>
-                    <div class="setting-row">
-                        <label for="initial-assets">當前財產</label>
-                        <input type="number" id="initial-assets" min="0" value="0" class="input-field no-spin">
+                    <div id="initial-assets-container" style="margin-bottom: 0.75rem;">
+                        <div class="setting-row">
+                            <label for="initial-assets-default">財產</label>
+                            <input type="number" id="initial-assets-default" data-type="default" min="0" value="0"
+                                class="input-field no-spin initial-asset-input">
+                        </div>
                     </div>
                     <div class="setting-row">
-                        <label for="initial-items">當前道具數</label>
+                        <label for="initial-items">道具數</label>
                         <input type="number" id="initial-items" min="0" value="0" class="input-field no-spin">
                     </div>
                 </section>
 
                 <!-- Game / VIP / Platform Selection -->
                 <section class="card" id="vip-card">
-                    <h2 class="card-title">🎖️ 遊戲配置設定</h2>
+                    <h2 class="card-title" style="border-bottom:none !important; padding-bottom:0; margin-bottom:1rem;">🎖️ 遊戲配置設定</h2>
                     <!-- VIP row -->
                     <div class="setting-row" id="vip-level-row">
                         <label for="vip-select">VIP 等級</label>
@@ -129,10 +197,10 @@
                     <div class="setting-row" id="platform-row">
                         <label for="platform-select">平台</label>
                         <select id="platform-select" class="input-field styled-select">
-                            <option value="win_apk">WIN / APK</option>
+                            <option value="official">官網 / 行動官網</option>
+                            <option value="win_apk">Windows / APK</option>
                             <option value="android">安卓</option>
                             <option value="ios">iOS</option>
-                            <option value="ios_white">iOS白</option>
                         </select>
                     </div>
                     <!-- 儲值項目 row (競技麻將2專用) -->
@@ -145,34 +213,7 @@
                     </div>
                 </section>
 
-                <!-- Global Bonus Config -->
-                <section class="card" id="global-bonus-card" style="display:none">
-                    <div class="card-header-with-action">
-                        <h2 class="card-title">🎁 全局隨機加成設定</h2>
-                        <label class="switch-label">
-                            <input type="checkbox" id="enable-global-bonus">
-                            <span class="switch-slider"></span>
-                        </label>
-                    </div>
-                    <div id="global-bonus-settings" class="setting-group-vertical" style="display:none">
-                        <div class="setting-row">
-                            <label>加成範圍 (%)</label>
-                            <div class="range-inputs-compact">
-                                <input type="number" id="global-bonus-min" class="input-field no-spin" value="0"
-                                    min="0">
-                                <span class="range-separator">~</span>
-                                <input type="number" id="global-bonus-max" class="input-field no-spin" value="10"
-                                    min="0">
-                            </div>
-                        </div>
-                        <div class="setting-row">
-                            <label>加成間距 (%)</label>
-                            <input type="number" id="global-bonus-step" class="input-field no-spin" value="1" min="0.1"
-                                step="0.1">
-                        </div>
-                        <p class="setting-hint">儲值時將自動列出所有可能的加成結果</p>
-                    </div>
-                </section>
+                <!-- (Global Bonus Card is now merged into bonus-merged-card above, this space intentionally left empty) -->
 
                 </section>
             </aside>
@@ -181,29 +222,117 @@
             <div id="main-column">
                 <!-- Current Status Summary -->
                 <section class="card" id="status-card">
-                    <h2 class="card-title">📊 當前狀態</h2>
-                    <div class="status-grid">
-                        <div class="status-item">
-                            <span class="status-label">當前財產</span>
-                            <span class="status-value" id="current-assets-display">0</span>
+                    <div class="card-header-premium">
+                        <div class="header-icon-box">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                <polyline points="16 7 22 7 22 13"></polyline>
+                            </svg>
                         </div>
-                        <div class="status-item">
-                            <span class="status-label">累計儲值</span>
-                            <span class="status-value" id="cumulative-deposit-display">0</span>
+                        <h2 class="card-title">當前狀態</h2>
+                    </div>
+
+                    <div class="status-premium-layout">
+                        <!-- Top Cards -->
+                        <div class="status-premium-grid" id="status-premium-grid">
+                            <!-- Diamond Card (or default asset) -->
+                            <div class="status-card-item blue" id="status-card-diamonds">
+                                <div class="status-card-header">
+                                    <div class="status-icon-box">
+                                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path d="M6 3h12l4 6-10 12L2 9z"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="status-tag">STATUS</span>
+                                </div>
+                                <div class="status-card-body">
+                                    <span class="status-label" id="label-diamonds">當前鑽石</span>
+                                    <span class="status-value highlight" id="value-diamonds">0</span>
+                                </div>
+                            </div>
+
+                            <!-- Coin Card -->
+                            <div class="status-card-item yellow" id="status-card-coins" style="display:none">
+                                <div class="status-card-header">
+                                    <div class="status-icon-box">
+                                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <circle cx="8" cy="8" r="6"></circle>
+                                            <circle cx="16" cy="16" r="6"></circle>
+                                        </svg>
+                                    </div>
+                                    <span class="status-tag">STATUS</span>
+                                </div>
+                                <div class="status-card-body">
+                                    <span class="status-label" id="label-coins">當前金幣</span>
+                                    <span class="status-value highlight" id="value-coins">0</span>
+                                </div>
+                            </div>
+
+                            <!-- Total Items Card -->
+                            <div class="status-card-item purple" id="status-card-total">
+                                <div class="status-card-header">
+                                    <div class="status-icon-box">
+                                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path
+                                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                                            </path>
+                                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                        </svg>
+                                    </div>
+                                    <span class="status-tag">STATUS</span>
+                                </div>
+                                <div class="status-card-body">
+                                    <span class="status-label">總道具數</span>
+                                    <span class="status-value highlight" id="total-items-display">0</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="status-item warning">
-                            <span class="status-label">距下個滿額還差</span>
-                            <span class="status-value" id="next-milestone-display">0</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">滿額贈道具</span>
-                            <span class="status-value" id="milestone-items-display">0</span>
-                        </div>
-                        <div class="status-item accent">
-                            <span class="status-label">總道具數</span>
-                            <span class="status-value highlight" id="total-items-display">0</span>
+
+                        <!-- Bottom Context Box -->
+                        <div class="status-premium-details">
+                            <div class="detail-item">
+                                <div class="detail-icon">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <circle cx="12" cy="12" r="6"></circle>
+                                        <circle cx="12" cy="12" r="2"></circle>
+                                    </svg>
+                                </div>
+                                <div class="detail-content">
+                                    <span class="detail-label">累計儲值</span>
+                                    <span class="detail-value" id="cumulative-deposit-display">0</span>
+                                </div>
+                            </div>
+
+                            <div class="detail-item milestone-section">
+                                <span class="detail-label">距下個滿額還差</span>
+                                <span class="detail-value milestone-value" id="next-milestone-display">0</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill" id="milestone-progress-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-content align-right">
+                                    <span class="detail-label">滿額贈品道具 <span class="gift-icon">🎁</span></span>
+                                    <span class="detail-value" id="milestone-items-display">0</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <!-- Hidden element to keep JS compatibility for multi-currency display container if needed -->
+                    <div id="current-assets-display-multi" style="display:none"></div>
+                    <span id="current-assets-label" style="display:none"></span>
+                    <div id="assets-status-group" style="display:none"></div>
                 </section>
 
                 <!-- Deposit Buttons -->
@@ -240,7 +369,7 @@
                                     <th>儲值金額</th>
                                     <th>加贈財產</th>
                                     <th>加贈道具</th>
-                                    <th>儲值後財產</th>
+                                    <th>儲值財產數</th>
                                     <th>累計儲值</th>
                                     <th>本筆新增<br>滿額道具</th>
                                     <th>滿額贈<br>道具(累計)</th>
@@ -278,6 +407,14 @@
             <div class="modal-body">
                 <p class="modal-instruction">請選取遊戲畫面上實際出現的結果：</p>
                 <div id="verify-option-list" class="verify-grid"></div>
+
+                <!-- Points Selection for Star 3 in 1 -->
+                <div id="verify-point-options-container"
+                    style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem;"
+                        id="verify-point-label">請選擇遊戲實際顯示的冬季紅利點數結果：</div>
+                    <div id="verify-point-grid" class="verify-grid"></div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button id="verification-modal-cancel" class="btn btn-secondary">取消儲值</button>
@@ -329,7 +466,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=1.1"></script>
+    <script src="app.js?v=1.2"></script>
 </body>
 
 </html>
