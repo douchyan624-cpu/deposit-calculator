@@ -9,7 +9,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="index.css?v=1.6">
+    <link rel="stylesheet" href="index.css?v=2.0">
 </head>
 
 <body>
@@ -62,66 +62,176 @@
             <!-- Left Column: Settings -->
             <aside id="settings-column" data-cache-bust="v12345">
                 <!-- Channel Bonus Config -->
+                <!-- Bonus Config (滿貫大亨 — red diamond bonus card) -->
+                <section class="card" id="bonus-gamea-card" style="display:none">
+                    <div class="card-header">
+                        <h2 class="card-title" style="font-size:1.25rem;">💎 紅鑽加成設定</h2>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="card-body">
+                        <!-- Random Bonus -->
+                        <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">🎲
+                                    隨機加成</h2>
+                                <div class="info-tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <div class="info-tooltip-text">儲值時將依加成範圍列出所有可能的紅鑽結果，由使用者選取實際結果</div>
+                                </div>
+                            </div>
+                            <label class="switch-label" style="margin-top:8px;">
+                                <input type="checkbox" id="enable-gamea-bonus">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        <div id="gamea-bonus-settings" class="setting-group-vertical"
+                            style="display:none;margin-top:0.5rem;">
+                            <div class="setting-row">
+                                <label>加成範圍 (%)</label>
+                                <div class="range-inputs-compact">
+                                    <input type="number" id="gamea-bonus-min" class="input-field no-spin" value="0"
+                                        min="0">
+                                    <span class="range-separator">~</span>
+                                    <input type="number" id="gamea-bonus-max" class="input-field no-spin" value="10"
+                                        min="0">
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <label>加成間距 (%)</label>
+                                <input type="number" id="gamea-bonus-step" class="input-field no-spin" value="1"
+                                    min="0.1" step="0.1">
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px solid rgba(255,255,255,0.07);margin:0.75rem 0;"></div>
+
+                        <!-- Fixed Bonus -->
+                        <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">📌
+                                    固定加成</h2>
+                                <div class="info-tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <div class="info-tooltip-text">每次儲值自動套用的固定紅鑽加成比例</div>
+                                </div>
+                            </div>
+                            <label class="switch-label" style="margin-top:8px;">
+                                <input type="checkbox" id="enable-gamea-fixed-bonus">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        <div id="gamea-fixed-bonus-settings" class="setting-group-vertical"
+                            style="display:none;margin-top:0.5rem;">
+                            <div class="setting-row">
+                                <label for="gamea-fixed-bonus-rate">加成比例</label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="gamea-fixed-bonus-rate" class="input-field no-spin"
+                                        value="5" min="0" step="0.1">
+                                    <span class="unit">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px solid rgba(255,255,255,0.07);margin:0.75rem 0;"></div>
+
+                        <!-- Channel Bonus (信用卡/iPass/LINE Pay) -->
+                        <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">💳
+                                    渠道加成</h2>
+                                <div class="info-tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <div class="info-tooltip-text">使用「信用卡」、「iPass一卡通」、「LINE Pay」儲值可額外獲得紅利加成</div>
+                                </div>
+                            </div>
+                            <label class="switch-label" style="margin-top:8px;">
+                                <input type="checkbox" id="enable-gamea-channel-bonus">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        <div id="gamea-channel-bonus-settings" class="setting-group-vertical"
+                            style="display:none;margin-top:0.5rem;">
+                            <div class="setting-row">
+                                <label for="gamea-channel-bonus-rate">加贈比例</label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="gamea-channel-bonus-rate" class="input-field no-spin"
+                                        value="5" min="0" step="0.1">
+                                    <span class="unit">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Bonus Config (Star 3 in 1 only — merged card) -->
                 <section class="card" id="bonus-merged-card" style="display:none">
-
-                    <!-- Random Bonus -->
-                    <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">🎲 隨機點數加成</h2>
-                            <div class="info-tooltip-container">
-                                <span class="info-icon">i</span>
-                                <div class="info-tooltip-text">儲值時將列出所有可能的點數加成結果供確認</div>
+                    <div class="card-header">
+                        <h2 class="card-title" style="font-size:1.25rem;">🎁 加成設定</h2>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="card-body">
+                        <!-- Random Bonus -->
+                        <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">
+                                    🎲
+                                    隨機點數加成</h2>
+                                <div class="info-tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <div class="info-tooltip-text">儲值時將列出所有可能的點數加成結果供確認</div>
+                                </div>
+                            </div>
+                            <label class="switch-label" style="margin-top:8px;">
+                                <input type="checkbox" id="enable-global-bonus">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        <div id="global-bonus-settings" class="setting-group-vertical"
+                            style="display:none;margin-top:0.5rem;">
+                            <div class="setting-row">
+                                <label>加成範圍 (%)</label>
+                                <div class="range-inputs-compact">
+                                    <input type="number" id="global-bonus-min" class="input-field no-spin" value="0"
+                                        min="0">
+                                    <span class="range-separator">~</span>
+                                    <input type="number" id="global-bonus-max" class="input-field no-spin" value="10"
+                                        min="0">
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <label>加成間距 (%)</label>
+                                <input type="number" id="global-bonus-step" class="input-field no-spin" value="1"
+                                    min="0.1" step="0.1">
                             </div>
                         </div>
-                        <label class="switch-label" style="margin-top:8px;">
-                            <input type="checkbox" id="enable-global-bonus">
-                            <span class="switch-slider"></span>
-                        </label>
-                    </div>
-                    <div id="global-bonus-settings" class="setting-group-vertical"
-                        style="display:none;margin-top:0.5rem;">
-                        <div class="setting-row">
-                            <label>加成範圍 (%)</label>
-                            <div class="range-inputs-compact">
-                                <input type="number" id="global-bonus-min" class="input-field no-spin" value="0"
-                                    min="0">
-                                <span class="range-separator">~</span>
-                                <input type="number" id="global-bonus-max" class="input-field no-spin" value="10"
-                                    min="0">
-                            </div>
-                        </div>
-                        <div class="setting-row">
-                            <label>加成間距 (%)</label>
-                            <input type="number" id="global-bonus-step" class="input-field no-spin" value="1" min="0.1"
-                                step="0.1">
-                        </div>
-                    </div>
 
-                    <div style="border-top:1px solid rgba(255,255,255,0.07);margin:0.75rem 0;"></div>
+                        <div style="border-top:1px solid rgba(255,255,255,0.07);margin:0.75rem 0;"></div>
 
-                    <!-- Channel Bonus -->
-                    <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">💳 渠道額外加贈</h2>
-                            <div class="info-tooltip-container">
-                                <span class="info-icon">i</span>
-                                <div class="info-tooltip-text">適用「信用卡」、「iPASS一卡通」、「LINE Pay」儲值</div>
+                        <!-- Channel Bonus -->
+                        <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">
+                                    💳
+                                    渠道額外加贈</h2>
+                                <div class="info-tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <div class="info-tooltip-text">適用「信用卡」、「iPASS一卡通」、「LINE Pay」儲值</div>
+                                </div>
                             </div>
+                            <label class="switch-label" style="margin-top:8px;">
+                                <input type="checkbox" id="enable-channel-bonus">
+                                <span class="switch-slider"></span>
+                            </label>
                         </div>
-                        <label class="switch-label" style="margin-top:8px;">
-                            <input type="checkbox" id="enable-channel-bonus">
-                            <span class="switch-slider"></span>
-                        </label>
-                    </div>
-                    <div id="channel-bonus-settings" class="setting-group-vertical"
-                        style="display:none;margin-top:0.5rem;">
-                        <div class="setting-row">
-                            <label for="channel-bonus-rate">加贈比例</label>
-                            <div class="input-with-unit">
-                                <input type="number" id="channel-bonus-rate" class="input-field no-spin" value="5"
-                                    min="0" step="0.1">
-                                <span class="unit">%</span>
+                        <div id="channel-bonus-settings" class="setting-group-vertical"
+                            style="display:none;margin-top:0.5rem;">
+                            <div class="setting-row">
+                                <label for="channel-bonus-rate">加贈比例</label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="channel-bonus-rate" class="input-field no-spin" value="5"
+                                        min="0" step="0.1">
+                                    <span class="unit">%</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -129,87 +239,146 @@
 
                 <!-- Threshold Settings -->
                 <section class="card" id="threshold-card">
-                    <h2 class="card-title">⚙️ 滿額門檻</h2>
-                    <div id="default-threshold-row">
-                        <div class="setting-row">
-                            <label for="threshold-amount" id="threshold-label">每累計儲值</label>
-                            <div class="input-with-unit">
-                                <input type="number" id="threshold-amount" min="1" value="1000"
-                                    class="input-field no-spin">
-                                <span class="unit" id="threshold-unit">元</span>
+                    <div class="card-header">
+                        <h2 class="card-title">⚙️ 滿額門檻</h2>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="default-threshold-row">
+                            <div class="setting-row">
+                                <label for="threshold-amount" id="threshold-label">每累計儲值</label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="threshold-amount" min="1" value="1000"
+                                        class="input-field no-spin">
+                                    <span class="unit" id="threshold-unit">元</span>
+                                </div>
                             </div>
-                            <span class="setting-hint" id="threshold-hint">送 1 個道具</span>
+                            <div class="setting-row">
+                                <label for="threshold-item-qty">贈送道具數</label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="threshold-item-qty" min="1" value="1"
+                                        class="input-field no-spin">
+                                    <span class="unit">個道具</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="star3-threshold-row" style="display: none; padding-top: 15px;">
+                            <label
+                                style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-bottom: 12px; cursor: pointer; line-height: 1.5; color: var(--text-primary);">
+                                <input type="radio" name="star3_threshold_type" value="diamonds" checked
+                                    style="margin-top: 2px;">
+                                <div>購買 <input type="text" id="star3-threshold-diamonds"
+                                        class="input-field compact no-spin"
+                                        style="width: 50px; display: inline-block; padding: 2px 6px; height: auto; font-size: 0.95rem; vertical-align: middle; margin: 0 4px;"
+                                        value="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')"> 鑽石 贈</div>
+                            </label>
+                            <label
+                                style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; line-height: 1.5; color: var(--text-primary);">
+                                <input type="radio" name="star3_threshold_type" value="icoins" style="margin-top: 2px;">
+                                <div>購買 <input type="text" id="star3-threshold-icoins"
+                                        class="input-field compact no-spin"
+                                        style="width: 60px; display: inline-block; padding: 2px 6px; height: auto; font-size: 0.95rem; vertical-align: middle; margin: 0 4px;"
+                                        value="100" oninput="this.value = this.value.replace(/[^0-9]/g, '')"> i幣 贈
+                                </div>
+                            </label>
+                            <div style="margin-top:10px;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                                <span style="font-size:0.9rem;color:var(--text-secondary);">每次贈</span>
+                                <input type="number" id="star3-threshold-item-qty" min="1" value="1"
+                                    class="input-field no-spin" style="width:60px;text-align:center;">
+                                <span style="font-size:0.9rem;color:var(--text-secondary);">個隨機加成點數</span>
+                            </div>
                         </div>
                     </div>
-                    <div id="star3-threshold-row" style="display: none; padding-top: 15px;">
-                        <label
-                            style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-bottom: 12px; cursor: pointer; line-height: 1.5; color: var(--text-primary);">
-                            <input type="radio" name="star3_threshold_type" value="diamonds" checked
-                                style="margin-top: 2px;">
-                            <div>購買 <input type="text" id="star3-threshold-diamonds" class="input-field compact no-spin"
-                                    style="width: 50px; display: inline-block; padding: 2px 6px; height: auto; font-size: 0.95rem; vertical-align: middle; margin: 0 4px;"
-                                    value="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')"> 鑽石 贈隨機加成點數</div>
-                        </label>
-                        <label
-                            style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; line-height: 1.5; color: var(--text-primary);">
-                            <input type="radio" name="star3_threshold_type" value="icoins" style="margin-top: 2px;">
-                            <div>購買 <input type="text" id="star3-threshold-icoins" class="input-field compact no-spin"
-                                    style="width: 60px; display: inline-block; padding: 2px 6px; height: auto; font-size: 0.95rem; vertical-align: middle; margin: 0 4px;"
-                                    value="100" oninput="this.value = this.value.replace(/[^0-9]/g, '')"> i幣 贈隨機加成點數
+                </section>
+
+                <!-- Extra Item Bonus Config -->
+                <section class="card" id="extra-item-card">
+                    <div class="card-header">
+                        <h2 class="card-title" style="font-size:1.25rem;">🎁 道具額外加贈</h2>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">
+                                    啟用設定</h2>
+                                <div class="info-tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <div class="info-tooltip-text">針對特定儲值金額設定額外加贈的道具數量</div>
+                                </div>
                             </div>
-                        </label>
+                            <label class="switch-label" style="margin-top:8px;">
+                                <input type="checkbox" id="enable-extra-item-bonus">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        <div id="extra-item-settings" class="setting-group-vertical"
+                            style="display:none;margin-top:0.5rem;">
+                            <div id="extra-item-list"
+                                style="max-height: 400px; overflow-y: auto; padding-right: 5px; margin-top: 0.5rem;">
+                                <!-- Dynamic list of inputs -->
+                            </div>
+                        </div>
                     </div>
                 </section>
 
                 <!-- Player State -->
                 <section class="card" id="player-card">
-                    <h2 class="card-title">👤 玩家初始狀態</h2>
-                    <div id="initial-assets-container" style="margin-bottom: 0.75rem;">
-                        <div class="setting-row">
-                            <label for="initial-assets-default">財產</label>
-                            <input type="number" id="initial-assets-default" data-type="default" min="0" value="0"
-                                class="input-field no-spin initial-asset-input">
-                        </div>
+                    <div class="card-header">
+                        <h2 class="card-title">👤 玩家初始狀態</h2>
+                        <span class="collapse-icon">▼</span>
                     </div>
-                    <div class="setting-row">
-                        <label for="initial-items">道具數</label>
-                        <input type="number" id="initial-items" min="0" value="0" class="input-field no-spin">
+                    <div class="card-body">
+                        <div id="initial-assets-container" style="margin-bottom: 0.75rem;">
+                            <div class="setting-row">
+                                <label for="initial-assets-default">財產</label>
+                                <input type="number" id="initial-assets-default" data-type="default" min="0" value="0"
+                                    class="input-field no-spin initial-asset-input">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <label for="initial-items">道具數</label>
+                            <input type="number" id="initial-items" min="0" value="0" class="input-field no-spin">
+                        </div>
                     </div>
                 </section>
 
                 <!-- Game / VIP / Platform Selection -->
                 <section class="card" id="vip-card">
-                    <h2 class="card-title" style="border-bottom:none !important; padding-bottom:0; margin-bottom:1rem;">🎖️ 遊戲配置設定</h2>
-                    <!-- VIP row -->
-                    <div class="setting-row" id="vip-level-row">
-                        <label for="vip-select">VIP 等級</label>
-                        <select id="vip-select" class="input-field styled-select">
-                            <option value="0">VIP 0</option>
-                            <option value="1">VIP 1</option>
-                            <option value="2">VIP 2</option>
-                            <option value="3">VIP 3</option>
-                            <option value="4">VIP 4</option>
-                            <option value="5">VIP 5</option>
-                            <option value="6">VIP 6</option>
-                        </select>
+                    <div class="card-header">
+                        <h2 class="card-title">🎖️ 遊戲配置設定</h2>
+                        <span class="collapse-icon">▼</span>
                     </div>
-                    <!-- Platform row -->
-                    <div class="setting-row" id="platform-row">
-                        <label for="platform-select">平台</label>
-                        <select id="platform-select" class="input-field styled-select">
-                            <option value="official">官網 / 行動官網</option>
-                            <option value="win_apk">Windows / APK</option>
-                            <option value="android">安卓</option>
-                            <option value="ios">iOS</option>
-                        </select>
-                    </div>
-                    <!-- 儲值項目 row (競技麻將2專用) -->
-                    <div class="setting-row" id="deposit-type-row" style="display:none">
-                        <label for="deposit-type-select">儲值項目</label>
-                        <select id="deposit-type-select" class="input-field styled-select">
-                            <option value="diamonds">鑽石</option>
-                            <option value="coins">金幣</option>
-                        </select>
+                    <div class="card-body">
+                        <!-- VIP row -->
+                        <div class="setting-row" id="vip-level-row">
+                            <label for="vip-select">VIP 等級</label>
+                            <select id="vip-select" class="input-field styled-select">
+                                <option value="0">VIP 0</option>
+                                <option value="1">VIP 1</option>
+                                <option value="2">VIP 2</option>
+                                <option value="3">VIP 3</option>
+                                <option value="4">VIP 4</option>
+                                <option value="5">VIP 5</option>
+                                <option value="6">VIP 6</option>
+                            </select>
+                        </div>
+                        <!-- Platform row -->
+                        <div class="setting-row" id="platform-row">
+                            <label for="platform-select">平台</label>
+                            <select id="platform-select" class="input-field styled-select">
+                                <option value="official">非iOS</option>
+                                <option value="ios">iOS</option>
+                            </select>
+                        </div>
+                        <!-- 儲值項目 row (競技麻將2專用) -->
+                        <div class="setting-row" id="deposit-type-row" style="display:none">
+                            <label for="deposit-type-select">儲值項目</label>
+                            <select id="deposit-type-select" class="input-field styled-select">
+                                <option value="diamonds">鑽石</option>
+                                <option value="coins">金幣</option>
+                            </select>
+                        </div>
                     </div>
                 </section>
 
@@ -220,6 +389,19 @@
 
             <!-- Right Column: Deposit & Records -->
             <div id="main-column">
+                <!-- Deposit Buttons -->
+                <section class="card" id="deposit-card">
+                    <div class="deposit-card-header">
+                        <h2 class="card-title">💰 儲值操作</h2>
+                        <span class="currency-note" id="currency-note"></span>
+                    </div>
+                    <div id="deposit-buttons" class="deposit-grid"></div>
+                    <div class="custom-deposit">
+                        <input type="number" id="custom-amount" placeholder="自訂金額" class="input-field no-spin" min="1">
+                        <button id="btn-custom-deposit" class="btn btn-primary">儲值</button>
+                    </div>
+                </section>
+
                 <!-- Current Status Summary -->
                 <section class="card" id="status-card">
                     <div class="card-header-premium">
@@ -333,19 +515,6 @@
                     <div id="current-assets-display-multi" style="display:none"></div>
                     <span id="current-assets-label" style="display:none"></span>
                     <div id="assets-status-group" style="display:none"></div>
-                </section>
-
-                <!-- Deposit Buttons -->
-                <section class="card" id="deposit-card">
-                    <div class="deposit-card-header">
-                        <h2 class="card-title">💰 儲值操作</h2>
-                        <span class="currency-note" id="currency-note"></span>
-                    </div>
-                    <div id="deposit-buttons" class="deposit-grid"></div>
-                    <div class="custom-deposit">
-                        <input type="number" id="custom-amount" placeholder="自訂金額" class="input-field no-spin" min="1">
-                        <button id="btn-custom-deposit" class="btn btn-primary">儲值</button>
-                    </div>
                 </section>
 
                 <!-- Records Table -->
@@ -466,7 +635,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=1.2"></script>
+    <script src="app.js?v=2.0"></script>
 </body>
 
 </html>

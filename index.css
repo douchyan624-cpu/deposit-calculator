@@ -130,37 +130,43 @@ input[type="number"].no-spin::-webkit-outer-spin-button {
 #app-header {
     position: relative;
     z-index: 1;
-    padding: 1.5rem 2rem 1rem;
+    padding: 0.6rem 1.5rem;
     text-align: center;
     border-bottom: 1px solid var(--border-color);
     background: rgba(11, 11, 20, 0.6);
     backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
 }
 
 #app-header h1 {
-    font-size: 1.75rem;
+    font-size: 1.35rem;
     font-weight: 700;
     background: linear-gradient(135deg, #d4b8ff, #9aa0ff, #38e0ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     letter-spacing: 0.02em;
+    white-space: nowrap;
 }
 
 .subtitle {
     color: var(--text-secondary);
-    font-size: 1rem;
-    margin-top: 0.25rem;
+    font-size: 0.9rem;
     font-weight: 400;
+    white-space: nowrap;
 }
 
 /* --- Main Layout --- */
 #app-main {
     position: relative;
     z-index: 1;
-    max-width: 1500px;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 1.25rem;
+    padding: 1.5rem;
+    min-height: calc(100vh - 60px);
 }
 
 /* --- Cards --- */
@@ -187,6 +193,60 @@ input[type="number"].no-spin::-webkit-outer-spin-button {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 1rem;
+}
+
+/* --- Collapsible Cards --- */
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    padding: 1rem 1.25rem;
+    margin: -1rem -1.25rem 0 -1.25rem;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    transition: background-color var(--transition-fast);
+}
+
+.card-header:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.card-header .card-title {
+    margin-bottom: 0 !important;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+}
+
+.collapse-icon {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    transition: transform var(--transition-normal);
+    margin-left: 0.5rem;
+}
+
+.card-body {
+    transition: all 0.3s ease-in-out;
+    max-height: 2000px;
+    opacity: 1;
+    overflow: visible;
+    margin-top: 1rem;
+}
+
+.card.collapsed .card-body {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.card.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.card.collapsed {
+    padding-bottom: 1rem;
 }
 
 .card-header-with-action .card-title {
@@ -484,53 +544,43 @@ input:checked+.switch-slider:before {
 .main-grid {
     display: grid;
     grid-template-columns: 340px 1fr;
-    gap: 1.25rem;
+    gap: 1.5rem;
     align-items: start;
 }
 
+/* 設定欄 - sticky */
 #settings-column {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.85rem;
     position: sticky;
-    top: 1.25rem;
-    max-height: calc(100vh - 5rem);
+    top: 1rem;
+    max-height: calc(100vh - 5.5rem);
     overflow-y: auto;
     padding-right: 4px;
 }
 
-#settings-column .card:nth-child(1) {
-    animation-delay: 0.1s;
-}
-
-#settings-column .card:nth-child(2) {
-    animation-delay: 0.15s;
-}
-
-#settings-column .card:nth-child(3) {
-    animation-delay: 0.2s;
-}
-
-#settings-column .card:nth-child(4) {
-    animation-delay: 0.25s;
-}
-
+/* 中間欄（狀態+儲值）- sticky */
 #main-column {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 5.5rem);
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
-#main-column .card:nth-child(1) {
-    animation-delay: 0.15s;
-}
-
-#main-column .card:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-#main-column .card:nth-child(3) {
-    animation-delay: 0.25s;
+/* 右欄（紀錄）- sticky */
+#records-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 5.5rem);
+    overflow-y: auto;
 }
 
 /* --- Form Elements --- */
@@ -576,6 +626,7 @@ select.styled-select option {
 .setting-row {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.75rem;
     margin-bottom: 0.75rem;
 }
@@ -631,8 +682,8 @@ select.styled-select option {
     position: absolute;
     top: calc(100% + 8px);
     bottom: auto;
-    left: 0;
-    transform: translateY(-5px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-5px);
     background: rgba(20, 18, 40, 0.95);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
@@ -643,7 +694,7 @@ select.styled-select option {
     white-space: normal;
     min-width: 220px;
     max-width: 300px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     opacity: 0;
     visibility: hidden;
     transition: all 0.2s ease;
@@ -656,7 +707,7 @@ select.styled-select option {
 .info-tooltip-container:hover .info-tooltip-text {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
 }
 
 .input-with-unit {
@@ -664,6 +715,12 @@ select.styled-select option {
     align-items: center;
     gap: 0.4rem;
     flex: 1;
+    min-width: 0;
+}
+
+.input-with-unit .input-field {
+    width: 100%;
+    min-width: 60px;
 }
 
 .input-with-unit .unit {
@@ -1623,15 +1680,23 @@ select.styled-select option {
 }
 
 /* --- Responsive --- */
-@media (max-width: 1200px) {
-    .status-grid {
-        grid-template-columns: repeat(3, 1fr);
+@media (max-width: 1440px) {
+    .main-grid {
+        grid-template-columns: 320px 1fr;
     }
 }
 
 @media (max-width: 1024px) {
     .main-grid {
-        grid-template-columns: 300px 1fr;
+        grid-template-columns: 280px 1fr;
+        gap: 1rem;
+    }
+
+    #settings-column,
+    #main-column {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
     }
 }
 
@@ -1641,55 +1706,70 @@ select.styled-select option {
     }
 
     #app-header {
-        padding: 1rem 1.25rem 0.75rem;
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 0.4rem;
     }
 
     #app-header h1 {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
     }
 
     #app-main {
-        padding: 0.75rem;
+        padding: 1rem 0.75rem;
     }
 
     .main-grid {
         grid-template-columns: 1fr;
-    }
-
-    #settings-column {
-        position: static;
-        max-height: none;
-    }
-
-    .status-grid {
-        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
     }
 
     .activity-controls {
         flex-direction: column;
         align-items: stretch;
+        gap: 1rem;
+    }
+
+    .custom-select-wrapper {
+        max-width: 100%;
     }
 
     .activity-buttons {
-        justify-content: flex-start;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .activity-buttons .btn {
+        flex: 1;
+        justify-content: center;
     }
 
     .deposit-grid {
-        grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .status-premium-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .status-premium-details {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
 }
 
 @media (max-width: 480px) {
-    .status-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
     .deposit-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .records-header {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .status-premium-details {
+        grid-template-columns: 1fr;
     }
 }
