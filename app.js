@@ -6,11 +6,10 @@ const GAME_VIP_DATA = {
     game_a: {
         label: '大滿貫（紅鑽）',
         currencyNote: '道具單位：紅鑽',
+        noVip: true,
         platforms: {
-            official: { label: '官網 / 行動官網', vip: _gameAVipFixed() },
-            win_apk: { label: 'Windows / APK', vip: _gameAVip() },
-            android: { label: '安卓', vip: _gameAVip() },
-            ios: { label: 'iOS', vip: _gameAVipIOS() },
+            official: { label: '非iOS', amounts: [30, 60, 150, 300, 450, 900, 1500, 3000, 5000, 10000, 20000, 30000] },
+            ios: { label: 'iOS', amounts: [33, 70, 170, 330, 490, 990, 1690, 3290, 5490, 10000, 20000, 30000] },
         },
     },
     mahjong2: {
@@ -202,12 +201,25 @@ function createDefaultActivity(name, game) {
         name: name,
         game: game || 'game_a',
         threshold: 1000,
+        thresholdItemQty: 1,
         enableGlobalBonus: false,
         globalBonusMin: 0,
         globalBonusMax: 10,
         globalBonusStep: 1,
         enableChannelBonus: false,
         channelBonusRate: 5,
+        // 滿貫大亨紅鑽加成
+        enableGameABonus: false,
+        gameABonusMin: 0,
+        gameABonusMax: 10,
+        gameABonusStep: 1,
+        enableGameAFixedBonus: false,
+        gameAFixedBonusRate: 5,
+        enableGameAChannelBonus: false,
+        gameAChannelBonusRate: 5,
+        // 道具額外加贈
+        enableExtraItemBonus: false,
+        extraItemBonusMap: {}, // amount (string) -> bonusQty (number)
     };
 }
 
@@ -266,8 +278,9 @@ function loadState() {
 }
 
 // ===== 3. Logic & Calculations =====
-function computeRecords(session, threshold) {
+function computeRecords(session, threshold, itemQty) {
     let cumulativeDeposit = 0;
+    itemQty = itemQty || 1;
 
     // Copy initial assets into an isolated state object
     let currentAssets = { ...session.initialAssets };
@@ -292,7 +305,7 @@ function computeRecords(session, threshold) {
 
         const prevMilestone = threshold > 0 ? Math.floor(prevCumulative / threshold) : 0;
         const currMilestone = threshold > 0 ? Math.floor(cumulativeDeposit / threshold) : 0;
-        const newMilestoneItems = currMilestone - prevMilestone;
+        const newMilestoneItems = (currMilestone - prevMilestone) * itemQty;
 
         computed.push({
             ...rec,
@@ -307,13 +320,13 @@ function computeRecords(session, threshold) {
             currencyUnit: cUnit,
             cumulativeDeposit: cumulativeDeposit,
             newMilestoneItems: newMilestoneItems,
-            totalMilestoneItems: currMilestone,
-            totalItems: session.initialItems + currMilestone + totalBonusItems,
+            totalMilestoneItems: currMilestone * itemQty,
+            totalItems: session.initialItems + currMilestone * itemQty + totalBonusItems,
         });
     }
 
-    const totalMilestoneItems = threshold > 0 ? Math.floor(cumulativeDeposit / threshold) : 0;
-    const nextMilestoneAt = threshold > 0 ? (totalMilestoneItems + 1) * threshold : 0;
+    const totalMilestoneItems = threshold > 0 ? Math.floor(cumulativeDeposit / threshold) * itemQty : 0;
+    const nextMilestoneAt = threshold > 0 ? (Math.floor(cumulativeDeposit / threshold) + 1) * threshold : 0;
     const nextMilestoneDiff = threshold > 0 ? nextMilestoneAt - cumulativeDeposit : 0;
 
     return {
@@ -329,6 +342,7 @@ function computeRecords(session, threshold) {
 function formatNumber(n) {
     return Number(n).toLocaleString('zh-TW');
 }
+
 
 // ===== 4. UI References =====
 const $ = (id) => document.getElementById(id);
@@ -420,6 +434,22 @@ const els = {
 
     verifyPointOptionsContainer: $('verify-point-options-container'),
     verifyPointGrid: $('verify-point-grid'),
+
+    // 滿貫大亨紅鑽加成 DOM
+    bonusGameACard: $('bonus-gamea-card'),
+    enableGameABonus: $('enable-gamea-bonus'),
+    gameABonusSettings: $('gamea-bonus-settings'),
+    gameABonusMin: $('gamea-bonus-min'),
+    gameABonusMax: $('gamea-bonus-max'),
+    gameABonusStep: $('gamea-bonus-step'),
+    enableGameAFixedBonus: $('enable-gamea-fixed-bonus'),
+    gameAFixedBonusSettings: $('gamea-fixed-bonus-settings'),
+    gameAFixedBonusRate: $('gamea-fixed-bonus-rate'),
+
+    // 道具額外加贈 DOM
+    enableExtraItemBonus: $('enable-extra-item-bonus'),
+    extraItemSettings: $('extra-item-settings'),
+    extraItemList: $('extra-item-list'),
 };
 
 // ===== 5. UI Rendering =====
@@ -479,7 +509,9 @@ function renderSettings() {
 
     const isMahjong2 = activity.game === 'mahjong2';
     const isStar3in1 = activity.game === 'star_3_in_1';
-    els.vipLevelRow.style.display = (isMahjong2 || isStar3in1) ? 'none' : 'flex';
+    const isGameA = activity.game === 'game_a';
+    // 隱藏VIP：滿貫大亨、麻將2、明星三缺一都不需要
+    els.vipLevelRow.style.display = 'none';
     els.platformRow.style.display = 'flex';
     els.depositTypeRow.style.display = (isMahjong2 || isStar3in1) ? 'flex' : 'none';
 
@@ -511,6 +543,102 @@ function renderSettings() {
 
     // Show/hide merged bonus card (star_3_in_1 only)
     if (els.bonusMergedCard) els.bonusMergedCard.style.display = isStar3in1 ? 'block' : 'none';
+
+    // Show/hide game_a bonus card (滿貫大亨 only)
+    if (els.bonusGameACard) {
+        els.bonusGameACard.style.display = isGameA ? 'block' : 'none';
+        if (isGameA) {
+            els.enableGameABonus.checked = activity.enableGameABonus || false;
+            els.gameABonusSettings.style.display = activity.enableGameABonus ? 'flex' : 'none';
+            els.gameABonusMin.value = activity.gameABonusMin !== undefined ? activity.gameABonusMin : 0;
+            els.gameABonusMax.value = activity.gameABonusMax !== undefined ? activity.gameABonusMax : 10;
+            els.gameABonusStep.value = activity.gameABonusStep !== undefined ? activity.gameABonusStep : 1;
+
+            els.enableGameAFixedBonus.checked = activity.enableGameAFixedBonus || false;
+            els.gameAFixedBonusSettings.style.display = activity.enableGameAFixedBonus ? 'flex' : 'none';
+            els.gameAFixedBonusRate.value = activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5;
+
+            // 渠道加成
+            const chkEl = document.getElementById('enable-gamea-channel-bonus');
+            const chkSet = document.getElementById('gamea-channel-bonus-settings');
+            const chkRate = document.getElementById('gamea-channel-bonus-rate');
+            if (chkEl) chkEl.checked = activity.enableGameAChannelBonus || false;
+            if (chkSet) chkSet.style.display = activity.enableGameAChannelBonus ? 'flex' : 'none';
+            if (chkRate) chkRate.value = activity.gameAChannelBonusRate !== undefined ? activity.gameAChannelBonusRate : 5;
+        }
+    }
+    // 同步門檻道具數
+    const tiqEl = document.getElementById('threshold-item-qty');
+    if (tiqEl) tiqEl.value = activity.thresholdItemQty !== undefined ? activity.thresholdItemQty : 1;
+    const s3iqEl = document.getElementById('star3-threshold-item-qty');
+    if (s3iqEl) s3iqEl.value = activity.thresholdItemQty !== undefined ? activity.thresholdItemQty : 1;
+
+    // 道具額外加贈渲染
+    if (els.enableExtraItemBonus) {
+        els.enableExtraItemBonus.checked = activity.enableExtraItemBonus || false;
+        els.extraItemSettings.style.display = activity.enableExtraItemBonus ? 'block' : 'none';
+
+        if (activity.enableExtraItemBonus) {
+            const gameInfo = GAME_VIP_DATA[activity.game];
+            let allAmounts = [];
+
+            if (gameInfo && gameInfo.platforms) {
+                Object.values(gameInfo.platforms).forEach(plat => {
+                    if (isMahjong2 || isStar3in1) {
+                        // Aggregate from all deposit types (diamonds, coins, etc)
+                        if (plat.depositItemMeta) {
+                            Object.values(plat.depositItemMeta).forEach(metaList => {
+                                metaList.forEach(m => allAmounts.push(m.amount));
+                            });
+                        }
+                    } else {
+                        // Aggregate from amounts or vip amounts
+                        if (plat.amounts) allAmounts.push(...plat.amounts);
+                        if (plat.vip) {
+                            Object.values(plat.vip).forEach(vAmts => allAmounts.push(...vAmts));
+                        }
+                    }
+                });
+            }
+
+            const uniqueAmounts = [...new Set(allAmounts)].sort((a, b) => a - b);
+            els.extraItemList.innerHTML = '';
+
+            if (uniqueAmounts.length === 0) {
+                els.extraItemList.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:0.9rem;padding:1rem;">無可用儲值項</p>';
+            } else {
+                uniqueAmounts.forEach(amt => {
+                    const row = document.createElement('div');
+                    row.className = 'setting-row';
+                    row.style.gap = '0.5rem';
+                    row.style.marginBottom = '0.5rem';
+                    const bonusVal = activity.extraItemBonusMap?.[amt] || 0;
+
+                    row.innerHTML = `
+                        <label style="min-width: 80px; font-size: 0.9rem;">${amt} 元</label>
+                        <div class="input-with-unit" style="flex: 1;">
+                            <input type="number" class="input-field no-spin extra-item-input" 
+                                   data-amount="${amt}" value="${bonusVal}" min="0" 
+                                   style="padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+                            <span class="unit" style="font-size: 0.85rem;">個</span>
+                        </div>
+                    `;
+                    els.extraItemList.appendChild(row);
+                });
+
+                els.extraItemList.querySelectorAll('.extra-item-input').forEach(input => {
+                    input.onchange = (e) => {
+                        const amt = e.target.dataset.amount;
+                        const qty = parseInt(e.target.value) || 0;
+                        if (!activity.extraItemBonusMap) activity.extraItemBonusMap = {};
+                        activity.extraItemBonusMap[amt] = qty;
+                        saveState();
+                    };
+                    enforcePositiveInteger(input);
+                });
+            }
+        }
+    }
 }
 
 function renderDepositButtons() {
@@ -535,7 +663,8 @@ function renderDepositButtons() {
         itemsMeta = gameInfo.platforms[platform]?.depositItemMeta?.[type] || [];
         amounts = itemsMeta.map(m => m.amount);
     } else {
-        amounts = gameInfo?.platforms?.[platform]?.vip?.[vip] || [];
+        // game_a: 直接用 amounts 陣列，不分 VIP
+        amounts = gameInfo?.platforms?.[platform]?.amounts || gameInfo?.platforms?.[platform]?.vip?.[vip] || [];
     }
 
     if (amounts.length === 0) {
@@ -599,7 +728,7 @@ function renderStatus() {
     if (!activity || !session) return;
 
     renderDepositButtons();
-    const result = computeRecords(session, activity.threshold);
+    const result = computeRecords(session, activity.threshold, activity.thresholdItemQty || 1);
 
     // --- Update Premium Status Cards ---
     const gameCurrencies = GAME_CURRENCIES[activity.game] || GAME_CURRENCIES['game_a'];
@@ -650,7 +779,7 @@ function renderRecords() {
     const session = getCurrentSession();
     if (!activity || !session) return;
 
-    const { computed } = computeRecords(session, activity.threshold);
+    const { computed } = computeRecords(session, activity.threshold, activity.thresholdItemQty || 1);
     els.emptyRecords.style.display = computed.length ? 'none' : 'block';
     els.tableWrapper.style.display = computed.length ? 'block' : 'none';
     els.btnUndo.disabled = !computed.length;
@@ -695,6 +824,7 @@ function renderRecords() {
 function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 0, currencyType = null, currencyUnit = null) {
     const activity = getCurrentActivity();
     const session = getCurrentSession();
+    const isGameA = activity.game === 'game_a';
 
     // Resolve defaults for multi-currency games if not provided
     if (!currencyType) {
@@ -705,34 +835,69 @@ function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 
         currencyUnit = currencyInfo ? currencyInfo.short : '';
     }
 
-    if (activity.enableGlobalBonus) {
-        openVerificationModal(amount, baseAssets, builtInBonusAssets, currencyType, currencyUnit);
+    // Determine which bonus system to use
+    const hasRandomBonus = isGameA ? activity.enableGameABonus : activity.enableGlobalBonus;
+    const hasFixedBonus = isGameA ? activity.enableGameAFixedBonus : false;
+    const fixedRate = isGameA ? (activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5) : 0;
+    // 渠道加成 (game_a 或 star3in1)
+    const channelRate = isGameA
+        ? (activity.enableGameAChannelBonus ? (activity.gameAChannelBonusRate !== undefined ? activity.gameAChannelBonusRate : 5) : 0)
+        : (activity.enableChannelBonus ? (activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5) : 0);
+
+    // 道具額外加贈
+    let extraBonusItems = 0;
+    if (activity.enableExtraItemBonus && activity.extraItemBonusMap) {
+        extraBonusItems = activity.extraItemBonusMap[amount] || 0;
+    }
+
+    if (hasRandomBonus) {
+        openVerificationModal(amount, baseAssets, builtInBonusAssets, currencyType, currencyUnit, extraBonusItems);
     } else {
-        const channelBonusAssets = (activity.enableChannelBonus && activity.channelBonusRate)
-            ? Math.floor(baseAssets * (activity.channelBonusRate / 100))
+        const fixedBonusAssets = (hasFixedBonus && fixedRate)
+            ? Math.floor(baseAssets * (fixedRate / 100))
             : 0;
-        addRecord(amount, baseAssets, builtInBonusAssets + channelBonusAssets, 0, currencyType, currencyUnit);
+        const channelBonusAssets = channelRate
+            ? Math.floor(baseAssets * (channelRate / 100))
+            : 0;
+        addRecord(amount, baseAssets, builtInBonusAssets + fixedBonusAssets + channelBonusAssets, extraBonusItems, currencyType, currencyUnit);
     }
 }
 
-function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets = 0, currencyType = 'default', currencyUnit = '') {
+function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets = 0, currencyType = 'default', currencyUnit = '', extraBonusItems = 0) {
     const activity = getCurrentActivity();
     const isStar3in1 = activity.game === 'star_3_in_1';
+    const isGameA = activity.game === 'game_a';
     els.verifyBaseAmount.textContent = formatNumber(amount);
     els.verifyOptionList.innerHTML = '';
 
     // Update modal instruction text
     const instruction = document.querySelector('#verification-modal .modal-instruction');
     if (instruction) {
-        instruction.textContent = isStar3in1
-            ? '請選擇遊戲實際顯示的冬季紅利點數結果：'
-            : '請選取遊戲畫面上實際出現的結果：';
+        if (isStar3in1) {
+            instruction.textContent = '請選擇遊戲實際顯示的冬季紅利點數結果：';
+        } else if (isGameA) {
+            instruction.textContent = '請選取遊戲畫面上實際出現的紅鑽加成結果：';
+        } else {
+            instruction.textContent = '請選取遊戲畫面上實際出現的結果：';
+        }
     }
 
-    const baseMin = activity.globalBonusMin;
-    const baseMax = activity.globalBonusMax;
-    const step = activity.globalBonusStep || 1;
-    const channelBonusRate = (activity.enableChannelBonus && activity.channelBonusRate) ? activity.channelBonusRate : 0;
+    // Pick bonus parameters depending on game type
+    let baseMin, baseMax, step, channelBonusRate;
+    if (isGameA) {
+        baseMin = activity.gameABonusMin !== undefined ? activity.gameABonusMin : 0;
+        baseMax = activity.gameABonusMax !== undefined ? activity.gameABonusMax : 10;
+        step = activity.gameABonusStep || 1;
+        // 固定加成 + 渠道加成 合計為 channelBonusRate
+        const fixedPart = (activity.enableGameAFixedBonus) ? (activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5) : 0;
+        const chPart = (activity.enableGameAChannelBonus) ? (activity.gameAChannelBonusRate !== undefined ? activity.gameAChannelBonusRate : 5) : 0;
+        channelBonusRate = fixedPart + chPart;
+    } else {
+        baseMin = activity.globalBonusMin !== undefined ? activity.globalBonusMin : 0;
+        baseMax = activity.globalBonusMax !== undefined ? activity.globalBonusMax : 10;
+        step = activity.globalBonusStep || 1;
+        channelBonusRate = (activity.enableChannelBonus) ? (activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5) : 0;
+    }
 
     for (let p = baseMin; p <= baseMax; p += step) {
         const totalP = p + channelBonusRate;
@@ -741,22 +906,32 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
         const btn = document.createElement('div');
         btn.className = 'verify-btn';
 
+        let extraText = extraBonusItems > 0 ? ` (+${extraBonusItems}道具)` : '';
+
         if (isStar3in1) {
             const rateLabel = channelBonusRate > 0
-                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)`
-                : `+${totalP}% 隨機加成`;
+                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)${extraText}`
+                : `+${totalP}% 隨機加成${extraText}`;
             btn.innerHTML = `
                 <span class="verify-amount">${formatNumber(totalAssets)} 點</span>
+                <span class="verify-label">${rateLabel}</span>
+            `;
+        } else if (isGameA) {
+            const rateLabel = channelBonusRate > 0
+                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%固定加成)${extraText}`
+                : `+${totalP}% 隨機加成${extraText}`;
+            btn.innerHTML = `
+                <span class="verify-amount">${formatNumber(totalAssets)} 紅鑽</span>
                 <span class="verify-label">${rateLabel}</span>
             `;
         } else {
             btn.innerHTML = `
                 <span class="verify-amount">${formatNumber(totalAssets)}</span>
-                <span class="verify-label">+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道)</span>
+                <span class="verify-label">+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道)${extraText}</span>
             `;
         }
         btn.onclick = () => {
-            addRecord(amount, baseAssets, builtInBonusAssets + modalBonusAssets, 0, currencyType, currencyUnit);
+            addRecord(amount, baseAssets, builtInBonusAssets + modalBonusAssets, extraBonusItems, currencyType, currencyUnit);
             closeVerificationModal();
         };
         els.verifyOptionList.appendChild(btn);
@@ -830,7 +1005,18 @@ function initEvents() {
         e.stopPropagation();
         els.activitySelectDropdown.classList.toggle('open');
     };
+    els.activitySelectDropdown.onclick = (e) => e.stopPropagation();
     document.onclick = () => els.activitySelectDropdown.classList.remove('open');
+
+    // Card Collapse Logic
+    document.querySelectorAll('.card-header').forEach(header => {
+        header.onclick = (e) => {
+            const card = header.closest('.card');
+            if (card) {
+                card.classList.toggle('collapsed');
+            }
+        };
+    });
 
     [els.thresholdAmount, els.initialItems, els.customAmount].forEach(enforcePositiveInteger);
 
@@ -866,6 +1052,15 @@ function initEvents() {
 
     // Settings sync
     els.thresholdAmount.onchange = () => { getCurrentActivity().threshold = parseInt(els.thresholdAmount.value) || 0; saveState(); renderStatus(); renderRecords(); };
+    // 門檻道具數
+    document.getElementById('threshold-item-qty').onchange = (e) => { getCurrentActivity().thresholdItemQty = parseInt(e.target.value) || 1; saveState(); renderStatus(); renderRecords(); };
+    const s3iq = document.getElementById('star3-threshold-item-qty');
+    if (s3iq) s3iq.onchange = (e) => { getCurrentActivity().thresholdItemQty = parseInt(e.target.value) || 1; saveState(); renderStatus(); renderRecords(); };
+    // 滿貫大亨渠道加成
+    const chkEl = document.getElementById('enable-gamea-channel-bonus');
+    const chkRate = document.getElementById('gamea-channel-bonus-rate');
+    if (chkEl) chkEl.onchange = () => { getCurrentActivity().enableGameAChannelBonus = chkEl.checked; saveState(); renderSettings(); };
+    if (chkRate) chkRate.onchange = () => { getCurrentActivity().gameAChannelBonusRate = parseFloat(chkRate.value) || 0; saveState(); };
     els.initialAssetsContainer.onchange = (e) => {
         if (e.target.classList.contains('initial-asset-input')) {
             const type = e.target.dataset.type;
@@ -889,6 +1084,15 @@ function initEvents() {
     // Channel Bonus settings
     els.enableChannelBonus.onchange = () => { getCurrentActivity().enableChannelBonus = els.enableChannelBonus.checked; saveState(); renderSettings(); };
     els.channelBonusRate.onchange = () => { getCurrentActivity().channelBonusRate = parseFloat(els.channelBonusRate.value) || 0; saveState(); };
+
+    // 滿貫大亨紅鑽加成 settings
+    els.enableGameABonus.onchange = () => { getCurrentActivity().enableGameABonus = els.enableGameABonus.checked; saveState(); renderSettings(); };
+    els.gameABonusMin.onchange = () => { getCurrentActivity().gameABonusMin = parseFloat(els.gameABonusMin.value) || 0; saveState(); };
+    els.gameABonusMax.onchange = () => { getCurrentActivity().gameABonusMax = parseFloat(els.gameABonusMax.value) || 0; saveState(); };
+    els.gameABonusStep.onchange = () => { getCurrentActivity().gameABonusStep = parseFloat(els.gameABonusStep.value) || 1; saveState(); };
+    els.enableGameAFixedBonus.onchange = () => { getCurrentActivity().enableGameAFixedBonus = els.enableGameAFixedBonus.checked; saveState(); renderSettings(); };
+    els.gameAFixedBonusRate.onchange = () => { getCurrentActivity().gameAFixedBonusRate = parseFloat(els.gameAFixedBonusRate.value) || 0; saveState(); };
+    els.enableExtraItemBonus.onchange = () => { getCurrentActivity().enableExtraItemBonus = els.enableExtraItemBonus.checked; saveState(); renderSettings(); };
 
     // Deposit
     els.btnCustomDeposit.onclick = () => { const val = parseInt(els.customAmount.value); if (val) { handleDepositTrigger(val); els.customAmount.value = ''; } };
