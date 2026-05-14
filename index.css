@@ -933,7 +933,7 @@ select.styled-select option {
     border-radius: 16px;
     padding: 0.85rem 1.25rem;
     display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     align-items: center;
     gap: 1.25rem;
 }

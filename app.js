@@ -57,25 +57,9 @@ const GAME_VIP_DATA = {
         currencyNote: '紅利點數已於遊戲內獲得',
         noVip: true,
         noPlatformDiff: false,
-        milestoneSource: 'points',
-        milestoneUnit: '點',
         platforms: {
-            official: {
-                label: '官網',
-                depositItemMeta: {
-                    diamonds: [30, 50, 90, 100, 150, 300, 500, 600, 800, 1000, 1500, 2000, 3000, 5000, 6000, 10000, 20000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
-                    icoins: [
-                        { amount: 10, qty: 1000 }, { amount: 30, qty: 3000 }, { amount: 50, qty: 5000 },
-                        { amount: 90, qty: 9000 }, { amount: 100, qty: 10000 }, { amount: 150, qty: 15000 },
-                        { amount: 300, qty: 30000 }, { amount: 500, qty: 50000 }, { amount: 600, qty: 60000 },
-                        { amount: 800, qty: 80000 }, { amount: 1000, qty: 100000 }, { amount: 1500, qty: 150000 },
-                        { amount: 2000, qty: 200000 }, { amount: 3000, qty: 300000 }, { amount: 5000, qty: 500000 },
-                        { amount: 6000, qty: 600000 }, { amount: 10000, qty: 1000000 }, { amount: 20000, qty: 2000000 }
-                    ].map(v => ({ ...v, unit: 'i幣' }))
-                }
-            },
             mobile_web: {
-                label: '行動官網',
+                label: '非iOS',
                 depositItemMeta: {
                     diamonds: [30, 50, 90, 100, 150, 250, 300, 500, 600, 800, 1000, 1500, 2000, 3000, 5000, 6000, 10000, 20000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
                     icoins: [
@@ -95,28 +79,6 @@ const GAME_VIP_DATA = {
                     icoins: [
                         { amount: 130, qty: 13000 }, { amount: 330, qty: 33000 }, { amount: 730, qty: 73000 },
                         { amount: 1650, qty: 165000 }, { amount: 3290, qty: 329000 }, { amount: 6000, qty: 600000 }
-                    ].map(v => ({ ...v, unit: 'i幣' }))
-                }
-            },
-            android: {
-                label: '安卓',
-                depositItemMeta: {
-                    diamonds: [90, 300, 600, 1500, 3000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
-                    icoins: [
-                        { amount: 90, qty: 9000 }, { amount: 150, qty: 15000 }, { amount: 300, qty: 30000 },
-                        { amount: 600, qty: 60000 }, { amount: 1000, qty: 100000 }, { amount: 1500, qty: 150000 },
-                        { amount: 3000, qty: 300000 }, { amount: 6000, qty: 600000 }
-                    ].map(v => ({ ...v, unit: 'i幣' }))
-                }
-            },
-            win_apk: {
-                label: 'Windows / APK',
-                depositItemMeta: {
-                    diamonds: [90, 100, 150, 300, 500, 600, 800, 1000, 1500, 2000, 3000, 5000, 6000, 10000, 20000].map(v => ({ amount: v, qty: v, unit: '鑽石' })),
-                    icoins: [
-                        { amount: 90, qty: 9000 }, { amount: 100, qty: 10000 }, { amount: 150, qty: 15000 },
-                        { amount: 300, qty: 30000 }, { amount: 500, qty: 50000 }, { amount: 600, qty: 60000 },
-                        { amount: 800, qty: 80000 }
                     ].map(v => ({ ...v, unit: 'i幣' }))
                 }
             }
@@ -385,14 +347,20 @@ const els = {
     btnCustomDeposit: $('btn-custom-deposit'),
 
     currentAssetsDisplay: $('current-assets-display'),
-    cumulativeDepositDisplay: $('cumulative-deposit-display'),
+    currentDepositDetail: $('current-deposit-detail'),
+    currentDepositDisplay: $('current-deposit-display'),
+    currentBonusDisplay: $('current-bonus-display'),
     nextMilestoneDisplay: $('next-milestone-display'),
-    milestoneItemsDisplay: $('milestone-items-display'),
+    nextMilestoneDisplayCard: $('next-milestone-display-card'),
+    currentBonusItemsDisplay: $('current-bonus-items-display'),
     totalItemsDisplay: $('total-items-display'),
     milestoneProgressFill: $('milestone-progress-fill'),
+    milestoneProgressFillCard: $('milestone-progress-fill-card'),
     statusGrid: $('status-premium-grid'),
     cardDiamonds: $('status-card-diamonds'),
     cardCoins: $('status-card-coins'),
+    statusCardMilestone: $('status-card-milestone'),
+    milestoneDetailItem: $('milestone-detail-item'),
     valueDiamonds: $('value-diamonds'),
     labelDiamonds: $('label-diamonds'),
     valueCoins: $('value-coins'),
@@ -535,11 +503,11 @@ function renderSettings() {
         }
     }
 
-    // Toggle custom threshold UI for star_3_in_1
+    // Toggle custom threshold UI for star_3_in_1 - REMOVED, now using default
     const defaultThresholdRow = document.getElementById('default-threshold-row');
     const star3ThresholdRow = document.getElementById('star3-threshold-row');
-    if (defaultThresholdRow) defaultThresholdRow.style.display = isStar3in1 ? 'none' : 'block';
-    if (star3ThresholdRow) star3ThresholdRow.style.display = isStar3in1 ? 'block' : 'none';
+    if (defaultThresholdRow) defaultThresholdRow.style.display = 'block';
+    if (star3ThresholdRow) star3ThresholdRow.style.display = 'none';
 
     // Show/hide merged bonus card (star_3_in_1 only)
     if (els.bonusMergedCard) els.bonusMergedCard.style.display = isStar3in1 ? 'block' : 'none';
@@ -697,13 +665,40 @@ function renderDepositButtons() {
                 }
             }
 
+            let star3BonusLabel = '';
+            if (isStar3in1 && activity.enableChannelBonus) {
+                const channelRate = activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5;
+                if (channelRate > 0) {
+                    const bonusPoints = Math.floor(amount * (channelRate / 100));
+                    if (bonusPoints > 0) {
+                        star3BonusLabel = `<span class="bonus-label" style="font-size:0.8rem; padding:0.2rem 0.5rem; top:-14px; right:-12px; background:var(--accent-pink); border-color:var(--accent-pink); color:#fff; box-shadow:0 0 10px rgba(244,114,182,0.4);">+${bonusPoints} 點數</span>`;
+                    }
+                }
+            }
+
             btn.innerHTML = `
                 ${meta.bonus ? `<span class="bonus-label">+${meta.bonus}%</span>` : ''}
+                ${star3BonusLabel}
                 <span class="ntd-amount">${amount} NTD</span>
                 <span class="asset-amount">${formatNumber(meta.qty)} ${meta.unit}</span>
             `;
         } else {
-            btn.innerHTML = `<span class="amount">${formatNumber(amount)}</span>`;
+            let gameABonusLabel = '';
+            if (activity.game === 'game_a') {
+                const fixedRate = activity.enableGameAFixedBonus ? (activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5) : 0;
+                const channelRate = activity.enableGameAChannelBonus ? (activity.gameAChannelBonusRate !== undefined ? activity.gameAChannelBonusRate : 5) : 0;
+                const totalRate = fixedRate + channelRate;
+                if (totalRate > 0) {
+                    const bonusAssets = Math.floor(amount * (totalRate / 100));
+                    if (bonusAssets > 0) {
+                        gameABonusLabel = `<span class="bonus-label" style="font-size:0.8rem; padding:0.2rem 0.5rem; top:-14px; right:-12px;">+${bonusAssets} 紅鑽</span>`;
+                    }
+                }
+            }
+            btn.innerHTML = `
+                ${gameABonusLabel}
+                <span class="amount">${formatNumber(amount)}</span>
+            `;
         }
 
         btn.addEventListener('click', () => handleDepositTrigger(amount, baseAssets, builtInBonusAssets, curType, curUnit));
@@ -731,7 +726,10 @@ function renderStatus() {
     const result = computeRecords(session, activity.threshold, activity.thresholdItemQty || 1);
 
     // --- Update Premium Status Cards ---
-    const gameCurrencies = GAME_CURRENCIES[activity.game] || GAME_CURRENCIES['game_a'];
+    let gameCurrencies = GAME_CURRENCIES[activity.game] || GAME_CURRENCIES['game_a'];
+    if ((activity.game === 'star_3_in_1' || activity.game === 'mahjong2') && session.depositType) {
+        gameCurrencies = gameCurrencies.filter(c => c.id === session.depositType);
+    }
 
     // If only 1 major currency (plus total card = 2 cards), center them
     if (els.statusGrid) {
@@ -760,17 +758,35 @@ function renderStatus() {
     }
 
     // --- Update Common Status Fields ---
-    if (els.cumulativeDepositDisplay) els.cumulativeDepositDisplay.textContent = formatNumber(result.cumulativeDeposit);
+    if (els.currentDepositDetail) els.currentDepositDetail.style.display = 'flex';
+    const lastRecord = session.records.length > 0 ? session.records[session.records.length - 1] : null;
+    if (els.currentDepositDisplay) els.currentDepositDisplay.textContent = lastRecord ? formatNumber(lastRecord.depositAmount) : '0';
+
+    // All games now use the card layout for milestone to align with "Total Items"
+    if (els.statusCardMilestone) els.statusCardMilestone.style.display = 'flex';
+    if (els.milestoneDetailItem) els.milestoneDetailItem.style.display = 'none';
+
+    if (els.currentBonusDisplay) {
+        const lastRecord = session.records.length > 0 ? session.records[session.records.length - 1] : null;
+        els.currentBonusDisplay.textContent = lastRecord ? formatNumber(lastRecord.bonusAssets) : '0';
+    }
+
     if (els.nextMilestoneDisplay) els.nextMilestoneDisplay.textContent = formatNumber(result.nextMilestoneDiff);
-    if (els.milestoneItemsDisplay) els.milestoneItemsDisplay.textContent = formatNumber(result.totalMilestoneItems);
+    if (els.nextMilestoneDisplayCard) els.nextMilestoneDisplayCard.textContent = formatNumber(result.nextMilestoneDiff);
+    if (els.currentBonusItemsDisplay) {
+        const lastRecord = session.records.length > 0 ? session.records[session.records.length - 1] : null;
+        els.currentBonusItemsDisplay.textContent = lastRecord ? formatNumber(lastRecord.bonusItems) : '0';
+    }
     if (els.totalItemsDisplay) els.totalItemsDisplay.textContent = formatNumber(result.totalItems);
 
     // --- Update Progress Bar ---
-    if (els.milestoneProgressFill && activity.threshold > 0) {
+    if (activity.threshold > 0) {
         const progress = Math.min(100, Math.max(0, ((activity.threshold - result.nextMilestoneDiff) / activity.threshold) * 100));
-        els.milestoneProgressFill.style.width = `${progress}%`;
-    } else if (els.milestoneProgressFill) {
-        els.milestoneProgressFill.style.width = '0%';
+        if (els.milestoneProgressFill) els.milestoneProgressFill.style.width = `${progress}%`;
+        if (els.milestoneProgressFillCard) els.milestoneProgressFillCard.style.width = `${progress}%`;
+    } else {
+        if (els.milestoneProgressFill) els.milestoneProgressFill.style.width = '0%';
+        if (els.milestoneProgressFillCard) els.milestoneProgressFillCard.style.width = '0%';
     }
 }
 
@@ -788,7 +804,7 @@ function renderRecords() {
     const totalPages = Math.max(1, Math.ceil(computed.length / PAGE_SIZE));
     if (currentPage > totalPages) currentPage = totalPages;
     const start = (currentPage - 1) * PAGE_SIZE;
-    const slice = computed.slice(start, start + PAGE_SIZE);
+    const slice = computed.slice().reverse().slice(start, start + PAGE_SIZE);
 
     els.recordTbody.innerHTML = '';
     slice.forEach(rec => {
@@ -797,11 +813,11 @@ function renderRecords() {
             <td class="col-check"><input type="checkbox" data-index="${rec.index - 1}"></td>
             <td>${rec.index}</td>
             <td>${formatNumber(rec.depositAmount)}</td>
-            <td>${rec.bonusAssets > 0 ? '+' + formatNumber(rec.bonusAssets) + (rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : '') : '-'}</td>
-            <td>${rec.bonusItems > 0 ? '+' + formatNumber(rec.bonusItems) : '-'}</td>
-            <td>${formatNumber(rec.depositedAssets)}${rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : ''}</td>
-            <td>${formatNumber(rec.cumulativeDeposit)}</td>
+            <td><span style="color: var(--accent-cyan); font-weight: bold;">${formatNumber(rec.depositedAssets)}</span>${rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : ''}</td>
+            <td>${rec.bonusAssets > 0 ? '<span style="color: var(--accent-green); font-weight: bold;">+' + formatNumber(rec.bonusAssets) + '</span>' + (rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : '') : '-'}</td>
             <td class="${rec.newMilestoneItems > 0 ? 'milestone-new' : ''}">${rec.newMilestoneItems > 0 ? '+' + rec.newMilestoneItems : '-'}</td>
+            <td>${rec.bonusItems > 0 ? '<span style="color: var(--accent-amber); font-weight: bold;">+' + formatNumber(rec.bonusItems) + '</span>' : '-'}</td>
+            <td>${formatNumber(rec.cumulativeDeposit)}</td>
             <td>${formatNumber(rec.totalMilestoneItems)}</td>
             <td class="col-total">${formatNumber(rec.totalItems)}</td>
         `;
@@ -946,7 +962,7 @@ function addRecord(amount, baseAssets, bonusAssets, bonusItems, currencyType = '
     session.records.push({ depositAmount: amount, baseAssets, bonusAssets, bonusItems, currencyType, currencyUnit });
     saveState();
     renderStatus();
-    currentPage = Math.ceil(session.records.length / PAGE_SIZE);
+    currentPage = 1;
     renderRecords();
 }
 
@@ -1059,8 +1075,8 @@ function initEvents() {
     // 滿貫大亨渠道加成
     const chkEl = document.getElementById('enable-gamea-channel-bonus');
     const chkRate = document.getElementById('gamea-channel-bonus-rate');
-    if (chkEl) chkEl.onchange = () => { getCurrentActivity().enableGameAChannelBonus = chkEl.checked; saveState(); renderSettings(); };
-    if (chkRate) chkRate.onchange = () => { getCurrentActivity().gameAChannelBonusRate = parseFloat(chkRate.value) || 0; saveState(); };
+    if (chkEl) chkEl.onchange = () => { getCurrentActivity().enableGameAChannelBonus = chkEl.checked; saveState(); renderSettings(); renderDepositButtons(); };
+    if (chkRate) chkRate.onchange = () => { getCurrentActivity().gameAChannelBonusRate = parseFloat(chkRate.value) || 0; saveState(); renderDepositButtons(); };
     els.initialAssetsContainer.onchange = (e) => {
         if (e.target.classList.contains('initial-asset-input')) {
             const type = e.target.dataset.type;
@@ -1073,7 +1089,7 @@ function initEvents() {
     els.initialItems.onchange = () => { getCurrentSession().initialItems = parseInt(els.initialItems.value) || 0; saveState(); renderStatus(); renderRecords(); };
     els.vipSelect.onchange = () => { getCurrentSession().vipLevel = parseInt(els.vipSelect.value); saveState(); renderDepositButtons(); };
     els.platformSelect.onchange = () => { getCurrentSession().platform = els.platformSelect.value; saveState(); renderDepositButtons(); };
-    els.depositTypeSelect.onchange = () => { getCurrentSession().depositType = els.depositTypeSelect.value; saveState(); renderDepositButtons(); };
+    els.depositTypeSelect.onchange = () => { getCurrentSession().depositType = els.depositTypeSelect.value; saveState(); renderDepositButtons(); renderStatus(); };
 
     // Global Bonus settings
     els.enableGlobalBonus.onchange = () => { getCurrentActivity().enableGlobalBonus = els.enableGlobalBonus.checked; saveState(); renderSettings(); };
@@ -1082,16 +1098,16 @@ function initEvents() {
     els.globalBonusStep.onchange = () => { getCurrentActivity().globalBonusStep = parseFloat(els.globalBonusStep.value) || 1; saveState(); };
 
     // Channel Bonus settings
-    els.enableChannelBonus.onchange = () => { getCurrentActivity().enableChannelBonus = els.enableChannelBonus.checked; saveState(); renderSettings(); };
-    els.channelBonusRate.onchange = () => { getCurrentActivity().channelBonusRate = parseFloat(els.channelBonusRate.value) || 0; saveState(); };
+    els.enableChannelBonus.onchange = () => { getCurrentActivity().enableChannelBonus = els.enableChannelBonus.checked; saveState(); renderSettings(); renderDepositButtons(); };
+    els.channelBonusRate.onchange = () => { getCurrentActivity().channelBonusRate = parseFloat(els.channelBonusRate.value) || 0; saveState(); renderDepositButtons(); };
 
     // 滿貫大亨紅鑽加成 settings
     els.enableGameABonus.onchange = () => { getCurrentActivity().enableGameABonus = els.enableGameABonus.checked; saveState(); renderSettings(); };
     els.gameABonusMin.onchange = () => { getCurrentActivity().gameABonusMin = parseFloat(els.gameABonusMin.value) || 0; saveState(); };
     els.gameABonusMax.onchange = () => { getCurrentActivity().gameABonusMax = parseFloat(els.gameABonusMax.value) || 0; saveState(); };
     els.gameABonusStep.onchange = () => { getCurrentActivity().gameABonusStep = parseFloat(els.gameABonusStep.value) || 1; saveState(); };
-    els.enableGameAFixedBonus.onchange = () => { getCurrentActivity().enableGameAFixedBonus = els.enableGameAFixedBonus.checked; saveState(); renderSettings(); };
-    els.gameAFixedBonusRate.onchange = () => { getCurrentActivity().gameAFixedBonusRate = parseFloat(els.gameAFixedBonusRate.value) || 0; saveState(); };
+    els.enableGameAFixedBonus.onchange = () => { getCurrentActivity().enableGameAFixedBonus = els.enableGameAFixedBonus.checked; saveState(); renderSettings(); renderDepositButtons(); };
+    els.gameAFixedBonusRate.onchange = () => { getCurrentActivity().gameAFixedBonusRate = parseFloat(els.gameAFixedBonusRate.value) || 0; saveState(); renderDepositButtons(); };
     els.enableExtraItemBonus.onchange = () => { getCurrentActivity().enableExtraItemBonus = els.enableExtraItemBonus.checked; saveState(); renderSettings(); };
 
     // Deposit
