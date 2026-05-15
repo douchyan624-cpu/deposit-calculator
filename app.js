@@ -47,9 +47,7 @@ const GAME_VIP_DATA = {
                     ]
                 }
             },
-            win_apk: { label: 'Web版', depositItemMeta: _mahjong2OldMeta() },
-            android: { label: '安卓', depositItemMeta: _mahjong2OldMeta() },
-            ios: { label: 'iOS', depositItemMeta: _mahjong2OldMeta() },
+            win_apk: { label: '其他平台', depositItemMeta: _mahjong2OldMeta() },
         },
     },
     star_3_in_1: {
@@ -164,10 +162,13 @@ function createDefaultActivity(name, game) {
         game: game || 'game_a',
         threshold: 1000,
         thresholdItemQty: 1,
+        // 明星三缺一 道具(點數) 加成
         enableGlobalBonus: false,
         globalBonusMin: 0,
         globalBonusMax: 10,
         globalBonusStep: 1,
+        enableGlobalFixedBonus: false,
+        globalFixedBonusRate: 5,
         enableChannelBonus: false,
         channelBonusRate: 5,
         // 滿貫大亨紅鑽加成
@@ -187,10 +188,10 @@ function createDefaultActivity(name, game) {
 
 function createDefaultSession() {
     return {
-        initialAssets: 0,
+        initialAssets: {},
         initialItems: 0,
         vipLevel: 0,
-        platform: 'win_apk',
+        platform: 'official',
         depositType: 'diamonds',
         records: [],
     };
@@ -324,7 +325,20 @@ const els = {
     initialAssetsContainer: $('initial-assets-container'),
     initialItems: $('initial-items'),
     vipSelect: $('vip-select'),
+    vipSelectText: $('vip-select-text'),
+    vipSelectDropdown: $('vip-select-dropdown'),
+    vipSelectDisplay: $('vip-select-display'),
+
     platformSelect: $('platform-select'),
+    platformSelectText: $('platform-select-text'),
+    platformSelectDropdown: $('platform-select-dropdown'),
+    platformSelectDisplay: $('platform-select-display'),
+
+    depositTypeSelect: $('deposit-type-select'),
+    depositTypeSelectText: $('deposit-type-select-text'),
+    depositTypeSelectDropdown: $('deposit-type-select-dropdown'),
+    depositTypeSelectDisplay: $('deposit-type-select-display'),
+
     vipLevelRow: $('vip-level-row'),
     platformRow: $('platform-row'),
     depositTypeRow: $('deposit-type-row'),
@@ -340,6 +354,10 @@ const els = {
     enableChannelBonus: $('enable-channel-bonus'),
     channelBonusSettings: $('channel-bonus-settings'),
     channelBonusRate: $('channel-bonus-rate'),
+
+    enableGlobalFixedBonus: $('enable-global-fixed-bonus'),
+    globalFixedBonusSettings: $('global-fixed-bonus-settings'),
+    globalFixedBonusRate: $('global-fixed-bonus-rate'),
 
     depositButtons: $('deposit-buttons'),
     currencyNote: $('currency-note'),
@@ -420,7 +438,57 @@ const els = {
     extraItemList: $('extra-item-list'),
 };
 
-// ===== 5. UI Rendering =====
+// Helper to setup custom selects
+function setupCustomSelect(display, dropdown, textEl, hiddenSelect, options, onChange) {
+    if (!display || !dropdown || !textEl || !hiddenSelect) return;
+
+    // Populate dropdown
+    dropdown.innerHTML = '';
+    options.forEach(opt => {
+        const div = document.createElement('div');
+        div.className = 'custom-select-option';
+        if (hiddenSelect.value === opt.value.toString()) div.classList.add('selected');
+        div.textContent = opt.label;
+        div.dataset.value = opt.value;
+        div.onclick = (e) => {
+            e.stopPropagation();
+            hiddenSelect.value = opt.value;
+            textEl.textContent = opt.label;
+
+            // Update selected class
+            dropdown.querySelectorAll('.custom-select-option').forEach(o => o.classList.remove('selected'));
+            div.classList.add('selected');
+
+            dropdown.classList.remove('open');
+            display.setAttribute('aria-expanded', 'false');
+            if (onChange) onChange(opt.value);
+        };
+        dropdown.appendChild(div);
+    });
+
+    // Toggle dropdown
+    display.onclick = (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.classList.contains('open');
+
+        // Close all other dropdowns
+        document.querySelectorAll('.custom-select-dropdown').forEach(d => {
+            if (d !== dropdown) d.classList.remove('open');
+        });
+        document.querySelectorAll('.custom-select-display').forEach(d => {
+            if (d !== display) d.setAttribute('aria-expanded', 'false');
+        });
+
+        if (isOpen) {
+            dropdown.classList.remove('open');
+            display.setAttribute('aria-expanded', 'false');
+        } else {
+            dropdown.classList.add('open');
+            display.setAttribute('aria-expanded', 'true');
+        }
+    };
+}
+
 function renderMainVisibility() {
     const hasActivity = !!getCurrentActivity();
     els.noActivityPlaceholder.style.display = hasActivity ? 'none' : 'block';
@@ -450,20 +518,65 @@ function renderSettings() {
     els.initialAssetsContainer.querySelectorAll('.initial-asset-input').forEach(enforcePositiveInteger);
 
     els.initialItems.value = session.initialItems;
+    // VIP Select Setup
+    const vipOptions = [];
+    if (gameInfo && gameInfo.platforms && gameInfo.platforms[session.platform] && gameInfo.platforms[session.platform].vip) {
+        Object.keys(gameInfo.platforms[session.platform].vip).forEach(v => {
+            vipOptions.push({ value: v, label: `VIP ${v}` });
+        });
+    } else {
+        // Fallback for games without complex VIP platform mapping (like game_a)
+        for (let i = 0; i <= 6; i++) vipOptions.push({ value: i.toString(), label: `VIP ${i}` });
+    }
+
+    setupCustomSelect(els.vipSelectDisplay, els.vipSelectDropdown, els.vipSelectText, els.vipSelect, vipOptions, (val) => {
+        session.vipLevel = val;
+        saveState();
+        renderDepositButtons();
+    });
     els.vipSelect.value = session.vipLevel;
-    // 依目前遙戲動態產生平台選項
-    const gameInfo = GAME_VIP_DATA[activity.game];
+    const currentVip = vipOptions.find(o => o.value === session.vipLevel.toString());
+    els.vipSelectText.textContent = currentVip ? currentVip.label : (vipOptions[0] ? vipOptions[0].label : 'VIP 0');
+
+    // Platform Select Setup
     if (gameInfo && gameInfo.platforms) {
-        els.platformSelect.innerHTML = Object.entries(gameInfo.platforms)
-            .map(([key, plat]) => `<option value="${key}">${plat.label}</option>`)
-            .join('');
+        const platOptions = Object.entries(gameInfo.platforms).map(([key, plat]) => ({ value: key, label: plat.label }));
+        setupCustomSelect(els.platformSelectDisplay, els.platformSelectDropdown, els.platformSelectText, els.platformSelect, platOptions, (val) => {
+            session.platform = val;
+            saveState();
+            renderSettings(); // Re-render to update VIP options if platform-specific
+            renderDepositButtons();
+        });
+
         if (!gameInfo.platforms[session.platform]) {
             session.platform = Object.keys(gameInfo.platforms)[0];
             saveState();
         }
+        els.platformSelect.value = session.platform;
+        const currentPlat = platOptions.find(o => o.value === session.platform);
+        els.platformSelectText.textContent = currentPlat ? currentPlat.label : (platOptions[0] ? platOptions[0].label : '');
     }
-    els.platformSelect.value = session.platform;
-    els.depositTypeSelect.value = session.depositType;
+
+    // Deposit Type Select Setup
+    const isStar3in1_dt = activity.game === 'star_3_in_1';
+    const isMahjong2_dt = activity.game === 'mahjong2';
+    const dtOptions = [];
+    if (isStar3in1_dt) {
+        dtOptions.push({ value: 'diamonds', label: '鑽石' }, { value: 'icoins', label: 'i幣' });
+    } else if (isMahjong2_dt) {
+        dtOptions.push({ value: 'diamonds', label: '鑽石' }, { value: 'coins', label: '金幣' });
+    }
+
+    if (dtOptions.length > 0) {
+        setupCustomSelect(els.depositTypeSelectDisplay, els.depositTypeSelectDropdown, els.depositTypeSelectText, els.depositTypeSelect, dtOptions, (val) => {
+            session.depositType = val;
+            saveState();
+            renderDepositButtons();
+        });
+        els.depositTypeSelect.value = session.depositType || dtOptions[0].value;
+        const currentDt = dtOptions.find(o => o.value === els.depositTypeSelect.value);
+        els.depositTypeSelectText.textContent = currentDt ? currentDt.label : dtOptions[0].label;
+    }
 
     els.enableGlobalBonus.checked = activity.enableGlobalBonus;
     els.globalBonusSettings.style.display = activity.enableGlobalBonus ? 'flex' : 'none';
@@ -475,6 +588,10 @@ function renderSettings() {
     els.channelBonusSettings.style.display = activity.enableChannelBonus ? 'flex' : 'none';
     els.channelBonusRate.value = activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5;
 
+    els.enableGlobalFixedBonus.checked = activity.enableGlobalFixedBonus || false;
+    els.globalFixedBonusSettings.style.display = activity.enableGlobalFixedBonus ? 'flex' : 'none';
+    els.globalFixedBonusRate.value = activity.globalFixedBonusRate !== undefined ? activity.globalFixedBonusRate : 5;
+
     const isMahjong2 = activity.game === 'mahjong2';
     const isStar3in1 = activity.game === 'star_3_in_1';
     const isGameA = activity.game === 'game_a';
@@ -483,34 +600,14 @@ function renderSettings() {
     els.platformRow.style.display = 'flex';
     els.depositTypeRow.style.display = (isMahjong2 || isStar3in1) ? 'flex' : 'none';
 
-    if (isStar3in1) {
-        const options = `
-            <option value="diamonds">鑽石</option>
-            <option value="icoins">i幣</option>
-        `;
-        if (els.depositTypeSelect.innerHTML !== options) {
-            els.depositTypeSelect.innerHTML = options;
-            els.depositTypeSelect.value = session.depositType || 'diamonds';
-        }
-    } else if (isMahjong2) {
-        const options = `
-            <option value="diamonds">鑽石</option>
-            <option value="coins">金幣</option>
-        `;
-        if (els.depositTypeSelect.innerHTML !== options) {
-            els.depositTypeSelect.innerHTML = options;
-            els.depositTypeSelect.value = session.depositType || 'diamonds';
-        }
-    }
-
     // Toggle custom threshold UI for star_3_in_1 - REMOVED, now using default
     const defaultThresholdRow = document.getElementById('default-threshold-row');
     const star3ThresholdRow = document.getElementById('star3-threshold-row');
     if (defaultThresholdRow) defaultThresholdRow.style.display = 'block';
     if (star3ThresholdRow) star3ThresholdRow.style.display = 'none';
 
-    // Show/hide merged bonus card (star_3_in_1 only)
-    if (els.bonusMergedCard) els.bonusMergedCard.style.display = isStar3in1 ? 'block' : 'none';
+    // Show/hide merged bonus card (star_3_in_1 & mahjong2)
+    if (els.bonusMergedCard) els.bonusMergedCard.style.display = (isStar3in1 || isMahjong2) ? 'block' : 'none';
 
     // Show/hide game_a bonus card (滿貫大亨 only)
     if (els.bonusGameACard) {
@@ -526,7 +623,7 @@ function renderSettings() {
             els.gameAFixedBonusSettings.style.display = activity.enableGameAFixedBonus ? 'flex' : 'none';
             els.gameAFixedBonusRate.value = activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5;
 
-            // 渠道加成
+            // 渠道加贈
             const chkEl = document.getElementById('enable-gamea-channel-bonus');
             const chkSet = document.getElementById('gamea-channel-bonus-settings');
             const chkRate = document.getElementById('gamea-channel-bonus-rate');
@@ -601,6 +698,7 @@ function renderSettings() {
                         if (!activity.extraItemBonusMap) activity.extraItemBonusMap = {};
                         activity.extraItemBonusMap[amt] = qty;
                         saveState();
+                        renderDepositButtons();
                     };
                     enforcePositiveInteger(input);
                 });
@@ -647,6 +745,16 @@ function renderDepositButtons() {
     amounts.forEach(amount => {
         const btn = document.createElement('button');
         btn.className = 'deposit-btn';
+        btn.style.position = 'relative'; // Ensure positioning for badges
+
+        let extraItemLabel = '';
+        if (activity.enableExtraItemBonus && activity.extraItemBonusMap) {
+            const extraQty = activity.extraItemBonusMap[amount];
+            if (extraQty > 0) {
+                // Display as a bottom badge
+                extraItemLabel = `<span class="extra-item-badge" style="position:absolute; bottom:-8px; left:50%; transform:translateX(-50%); background:var(--accent-amber); color:#000; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:700; white-space:nowrap; border:1px solid rgba(0,0,0,0.1); box-shadow:0 2px 5px rgba(0,0,0,0.4); z-index:10; pointer-events:none;">+${extraQty} 道具</span>`;
+            }
+        }
 
         let baseAssets = amount;
         let builtInBonusAssets = 0;
@@ -665,20 +773,31 @@ function renderDepositButtons() {
                 }
             }
 
-            let star3BonusLabel = '';
-            if (isStar3in1 && activity.enableChannelBonus) {
-                const channelRate = activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5;
-                if (channelRate > 0) {
-                    const bonusPoints = Math.floor(amount * (channelRate / 100));
-                    if (bonusPoints > 0) {
-                        star3BonusLabel = `<span class="bonus-label" style="font-size:0.8rem; padding:0.2rem 0.5rem; top:-14px; right:-12px; background:var(--accent-pink); border-color:var(--accent-pink); color:#fff; box-shadow:0 0 10px rgba(244,114,182,0.4);">+${bonusPoints} 點數</span>`;
+            let extraBonusLabel = '';
+            if (isStar3in1 || isMahjong2) {
+                const fixedRate = activity.enableGlobalFixedBonus ? (activity.globalFixedBonusRate !== undefined ? activity.globalFixedBonusRate : 5) : 0;
+                const channelRate = activity.enableChannelBonus ? (activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5) : 0;
+                const totalRate = fixedRate + channelRate;
+
+                if (totalRate > 0) {
+                    // 明星三缺一以金額為基數，麻將2以財產為基數
+                    const calcBase = isStar3in1 ? amount : baseAssets;
+                    const bonusVal = Math.floor(calcBase * (totalRate / 100));
+
+                    if (isStar3in1) {
+                        const totalPoints = amount + bonusVal;
+                        extraBonusLabel = `<span class="bonus-label" style="font-size:0.8rem; padding:0.2rem 0.5rem; top:-14px; right:-12px; background:var(--accent-pink); border-color:var(--accent-pink); color:#fff; box-shadow:0 0 10px rgba(244,114,182,0.4);">${formatNumber(totalPoints)} 點數</span>`;
+                    } else {
+                        // 競技麻將2
+                        extraBonusLabel = `<span class="bonus-label" style="font-size:0.8rem; padding:0.2rem 0.5rem; top:-14px; right:-12px; background:var(--accent-pink); border-color:var(--accent-pink); color:#fff; box-shadow:0 0 10px rgba(244,114,182,0.4);">+${formatNumber(bonusVal)} ${meta.unit}</span>`;
                     }
                 }
             }
 
             btn.innerHTML = `
-                ${meta.bonus ? `<span class="bonus-label">+${meta.bonus}%</span>` : ''}
-                ${star3BonusLabel}
+                ${meta.bonus ? `<span class="bonus-label">+${meta.bonus}% ${meta.unit}</span>` : ''}
+                ${extraBonusLabel}
+                ${extraItemLabel}
                 <span class="ntd-amount">${amount} NTD</span>
                 <span class="asset-amount">${formatNumber(meta.qty)} ${meta.unit}</span>
             `;
@@ -697,6 +816,7 @@ function renderDepositButtons() {
             }
             btn.innerHTML = `
                 ${gameABonusLabel}
+                ${extraItemLabel}
                 <span class="amount">${formatNumber(amount)}</span>
             `;
         }
@@ -774,8 +894,9 @@ function renderStatus() {
     if (els.nextMilestoneDisplay) els.nextMilestoneDisplay.textContent = formatNumber(result.nextMilestoneDiff);
     if (els.nextMilestoneDisplayCard) els.nextMilestoneDisplayCard.textContent = formatNumber(result.nextMilestoneDiff);
     if (els.currentBonusItemsDisplay) {
-        const lastRecord = session.records.length > 0 ? session.records[session.records.length - 1] : null;
-        els.currentBonusItemsDisplay.textContent = lastRecord ? formatNumber(lastRecord.bonusItems) : '0';
+        const lastRec = result.computed.length > 0 ? result.computed[result.computed.length - 1] : null;
+        const totalThisTime = lastRec ? (lastRec.newMilestoneItems + lastRec.bonusItems) : 0;
+        els.currentBonusItemsDisplay.textContent = formatNumber(totalThisTime);
     }
     if (els.totalItemsDisplay) els.totalItemsDisplay.textContent = formatNumber(result.totalItems);
 
@@ -813,13 +934,14 @@ function renderRecords() {
             <td class="col-check"><input type="checkbox" data-index="${rec.index - 1}"></td>
             <td>${rec.index}</td>
             <td>${formatNumber(rec.depositAmount)}</td>
-            <td><span style="color: var(--accent-cyan); font-weight: bold;">${formatNumber(rec.depositedAssets)}</span>${rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : ''}</td>
+            <td><span style="color: ${(rec.currencyUnit === 'i幣' || rec.currencyUnit === '金幣') ? 'var(--accent-amber)' : 'var(--accent-cyan)'}; font-weight: bold;">${formatNumber(rec.depositedAssets)}</span>${rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : ''}</td>
             <td>${rec.bonusAssets > 0 ? '<span style="color: var(--accent-green); font-weight: bold;">+' + formatNumber(rec.bonusAssets) + '</span>' + (rec.currencyUnit ? ' <span style="font-size:0.85em;color:var(--text-muted)">' + rec.currencyUnit + '</span>' : '') : '-'}</td>
             <td class="${rec.newMilestoneItems > 0 ? 'milestone-new' : ''}">${rec.newMilestoneItems > 0 ? '+' + rec.newMilestoneItems : '-'}</td>
-            <td>${rec.bonusItems > 0 ? '<span style="color: var(--accent-amber); font-weight: bold;">+' + formatNumber(rec.bonusItems) + '</span>' : '-'}</td>
+            <td>${rec.bonusItems > 0 ? '<span style="color: var(--accent-green); font-weight: bold;">+' + formatNumber(rec.bonusItems) + '</span>' : '-'}</td>
+            <td style="background: rgba(244, 114, 182, 0.08); font-weight: 700; color: var(--accent-pink);">${(rec.newMilestoneItems + rec.bonusItems) > 0 ? '+' + formatNumber(rec.newMilestoneItems + rec.bonusItems) : '-'}</td>
             <td>${formatNumber(rec.cumulativeDeposit)}</td>
             <td>${formatNumber(rec.totalMilestoneItems)}</td>
-            <td class="col-total">${formatNumber(rec.totalItems)}</td>
+
         `;
         els.recordTbody.appendChild(tr);
     });
@@ -852,9 +974,12 @@ function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 
     }
 
     // Determine which bonus system to use
+    const isStar3in1 = activity.game === 'star_3_in_1';
     const hasRandomBonus = isGameA ? activity.enableGameABonus : activity.enableGlobalBonus;
-    const hasFixedBonus = isGameA ? activity.enableGameAFixedBonus : false;
-    const fixedRate = isGameA ? (activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5) : 0;
+    const hasFixedBonus = isGameA ? activity.enableGameAFixedBonus : (isStar3in1 ? activity.enableGlobalFixedBonus : false);
+    const fixedRate = isGameA
+        ? (activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5)
+        : (isStar3in1 ? (activity.globalFixedBonusRate !== undefined ? activity.globalFixedBonusRate : 5) : 0);
     // 渠道加成 (game_a 或 star3in1)
     const channelRate = isGameA
         ? (activity.enableGameAChannelBonus ? (activity.gameAChannelBonusRate !== undefined ? activity.gameAChannelBonusRate : 5) : 0)
@@ -869,20 +994,38 @@ function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 
     if (hasRandomBonus) {
         openVerificationModal(amount, baseAssets, builtInBonusAssets, currencyType, currencyUnit, extraBonusItems);
     } else {
+        const calculationBase = isStar3in1 ? amount : baseAssets;
         const fixedBonusAssets = (hasFixedBonus && fixedRate)
-            ? Math.floor(baseAssets * (fixedRate / 100))
+            ? Math.floor(calculationBase * (fixedRate / 100))
             : 0;
         const channelBonusAssets = channelRate
-            ? Math.floor(baseAssets * (channelRate / 100))
+            ? Math.floor(calculationBase * (channelRate / 100))
             : 0;
-        addRecord(amount, baseAssets, builtInBonusAssets + fixedBonusAssets + channelBonusAssets, extraBonusItems, currencyType, currencyUnit);
+
+        if (isStar3in1) {
+            // 明星三缺一：固定加成與渠道加贈顯示為「加贈道具」，且包含 1:1 的基本點數
+            const basePoints = amount;
+            const calculatedBonus = fixedBonusAssets + channelBonusAssets;
+            addRecord(amount, baseAssets, builtInBonusAssets, basePoints + extraBonusItems + calculatedBonus, currencyType, currencyUnit);
+        } else {
+            addRecord(amount, baseAssets, builtInBonusAssets + fixedBonusAssets + channelBonusAssets, extraBonusItems, currencyType, currencyUnit);
+        }
     }
 }
 
 function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets = 0, currencyType = 'default', currencyUnit = '', extraBonusItems = 0) {
     const activity = getCurrentActivity();
+    const session = getCurrentSession();
     const isStar3in1 = activity.game === 'star_3_in_1';
     const isGameA = activity.game === 'game_a';
+
+    // 明星三缺一：計算此筆儲值預計獲得的滿額贈道具數
+    let milestoneItems = 0;
+    if (isStar3in1 && activity.threshold > 0) {
+        const prevCumulative = session.records.reduce((sum, r) => sum + r.depositAmount, 0);
+        milestoneItems = (Math.floor((prevCumulative + amount) / activity.threshold) - Math.floor(prevCumulative / activity.threshold)) * (activity.thresholdItemQty || 1);
+    }
+
     els.verifyBaseAmount.textContent = formatNumber(amount);
     els.verifyOptionList.innerHTML = '';
 
@@ -890,7 +1033,7 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
     const instruction = document.querySelector('#verification-modal .modal-instruction');
     if (instruction) {
         if (isStar3in1) {
-            instruction.textContent = '請選擇遊戲實際顯示的冬季紅利點數結果：';
+            instruction.textContent = '請選擇遊戲實際顯示的道具(點數)結果：';
         } else if (isGameA) {
             instruction.textContent = '請選取遊戲畫面上實際出現的紅鑽加成結果：';
         } else {
@@ -912,12 +1055,15 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
         baseMin = activity.globalBonusMin !== undefined ? activity.globalBonusMin : 0;
         baseMax = activity.globalBonusMax !== undefined ? activity.globalBonusMax : 10;
         step = activity.globalBonusStep || 1;
-        channelBonusRate = (activity.enableChannelBonus) ? (activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5) : 0;
+        const fixedPart = (isStar3in1 && activity.enableGlobalFixedBonus) ? (activity.globalFixedBonusRate !== undefined ? activity.globalFixedBonusRate : 5) : 0;
+        const chPart = (activity.enableChannelBonus) ? (activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5) : 0;
+        channelBonusRate = fixedPart + chPart;
     }
 
     for (let p = baseMin; p <= baseMax; p += step) {
         const totalP = p + channelBonusRate;
-        const modalBonusAssets = Math.floor(baseAssets * (totalP / 100));
+        const calculationBase = isStar3in1 ? amount : baseAssets;
+        const modalBonusAssets = Math.floor(calculationBase * (totalP / 100));
         const totalAssets = baseAssets + builtInBonusAssets + modalBonusAssets;
         const btn = document.createElement('div');
         btn.className = 'verify-btn';
@@ -925,16 +1071,23 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
         let extraText = extraBonusItems > 0 ? ` (+${extraBonusItems}道具)` : '';
 
         if (isStar3in1) {
+            // 明星三缺一：顯示總點數 = 基本點數(金額) + 加成點數 + 滿額贈 + 額外道具
+            const basePoints = amount;
+            const displayTotal = basePoints + modalBonusAssets + milestoneItems + extraBonusItems;
             const rateLabel = channelBonusRate > 0
                 ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)${extraText}`
                 : `+${totalP}% 隨機加成${extraText}`;
             btn.innerHTML = `
-                <span class="verify-amount">${formatNumber(totalAssets)} 點</span>
+                <span class="verify-amount">${formatNumber(displayTotal)} 點數</span>
                 <span class="verify-label">${rateLabel}</span>
             `;
+            btn.onclick = () => {
+                addRecord(amount, baseAssets, builtInBonusAssets, basePoints + extraBonusItems + modalBonusAssets, currencyType, currencyUnit);
+                closeVerificationModal();
+            };
         } else if (isGameA) {
             const rateLabel = channelBonusRate > 0
-                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%固定加成)${extraText}`
+                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)${extraText}`
                 : `+${totalP}% 隨機加成${extraText}`;
             btn.innerHTML = `
                 <span class="verify-amount">${formatNumber(totalAssets)} 紅鑽</span>
@@ -947,7 +1100,13 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
             `;
         }
         btn.onclick = () => {
-            addRecord(amount, baseAssets, builtInBonusAssets + modalBonusAssets, extraBonusItems, currencyType, currencyUnit);
+            if (isStar3in1) {
+                // 明星三缺一：隨機加成部分顯示為「加贈道具」，且包含 1:1 的基本點數
+                const basePoints = amount;
+                addRecord(amount, baseAssets, builtInBonusAssets, basePoints + extraBonusItems + modalBonusAssets, currencyType, currencyUnit);
+            } else {
+                addRecord(amount, baseAssets, builtInBonusAssets + modalBonusAssets, extraBonusItems, currencyType, currencyUnit);
+            }
             closeVerificationModal();
         };
         els.verifyOptionList.appendChild(btn);
@@ -968,31 +1127,19 @@ function addRecord(amount, baseAssets, bonusAssets, bonusItems, currencyType = '
 
 // ===== 7. Custom Activity Select =====
 function buildCustomSelectOptions() {
-    const dropdown = els.activitySelectDropdown;
-    dropdown.innerHTML = '';
+    const activityOptions = appState.activities.map(a => ({ value: a.id, label: a.name }));
+
+    setupCustomSelect(els.activitySelectDisplay, els.activitySelectDropdown, els.activitySelectText, els.activitySelect, activityOptions, (val) => {
+        appState.currentActivityId = val;
+        saveState();
+        renderAll();
+    });
+
     if (appState.activities.length === 0) {
         els.activitySelectText.textContent = '— 請先新增活動 —';
-        const opt = document.createElement('div');
-        opt.className = 'custom-select-option';
-        opt.style.cursor = 'default';
-        opt.style.color = 'var(--text-muted)';
-        opt.textContent = '— 請先新增活動 —';
-        dropdown.appendChild(opt);
     } else {
         const current = getCurrentActivity();
         els.activitySelectText.textContent = current ? current.name : '— 請選擇活動 —';
-        appState.activities.forEach(a => {
-            const opt = document.createElement('div');
-            opt.className = 'custom-select-option' + (a.id === appState.currentActivityId ? ' selected' : '');
-            opt.textContent = a.name;
-            opt.onclick = () => {
-                appState.currentActivityId = a.id;
-                saveState();
-                renderAll();
-                els.activitySelectDropdown.classList.remove('open');
-            };
-            dropdown.appendChild(opt);
-        });
     }
 }
 
@@ -1016,13 +1163,11 @@ const enforcePositiveInteger = (input) => {
 
 // ===== 8. Event Listeners =====
 function initEvents() {
-    // Activity Select
-    els.activitySelectDisplay.onclick = (e) => {
-        e.stopPropagation();
-        els.activitySelectDropdown.classList.toggle('open');
-    };
-    els.activitySelectDropdown.onclick = (e) => e.stopPropagation();
-    document.onclick = () => els.activitySelectDropdown.classList.remove('open');
+    // Global click listener to close all dropdowns
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-dropdown').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.custom-select-display').forEach(d => d.setAttribute('aria-expanded', 'false'));
+    });
 
     // Card Collapse Logic
     document.querySelectorAll('.card-header').forEach(header => {
@@ -1101,6 +1246,10 @@ function initEvents() {
     els.enableChannelBonus.onchange = () => { getCurrentActivity().enableChannelBonus = els.enableChannelBonus.checked; saveState(); renderSettings(); renderDepositButtons(); };
     els.channelBonusRate.onchange = () => { getCurrentActivity().channelBonusRate = parseFloat(els.channelBonusRate.value) || 0; saveState(); renderDepositButtons(); };
 
+    // Star 3 in 1 Fixed Bonus
+    els.enableGlobalFixedBonus.onchange = () => { getCurrentActivity().enableGlobalFixedBonus = els.enableGlobalFixedBonus.checked; saveState(); renderSettings(); renderDepositButtons(); };
+    els.globalFixedBonusRate.onchange = () => { getCurrentActivity().globalFixedBonusRate = parseFloat(els.globalFixedBonusRate.value) || 0; saveState(); renderDepositButtons(); };
+
     // 滿貫大亨紅鑽加成 settings
     els.enableGameABonus.onchange = () => { getCurrentActivity().enableGameABonus = els.enableGameABonus.checked; saveState(); renderSettings(); };
     els.gameABonusMin.onchange = () => { getCurrentActivity().gameABonusMin = parseFloat(els.gameABonusMin.value) || 0; saveState(); };
@@ -1108,7 +1257,7 @@ function initEvents() {
     els.gameABonusStep.onchange = () => { getCurrentActivity().gameABonusStep = parseFloat(els.gameABonusStep.value) || 1; saveState(); };
     els.enableGameAFixedBonus.onchange = () => { getCurrentActivity().enableGameAFixedBonus = els.enableGameAFixedBonus.checked; saveState(); renderSettings(); renderDepositButtons(); };
     els.gameAFixedBonusRate.onchange = () => { getCurrentActivity().gameAFixedBonusRate = parseFloat(els.gameAFixedBonusRate.value) || 0; saveState(); renderDepositButtons(); };
-    els.enableExtraItemBonus.onchange = () => { getCurrentActivity().enableExtraItemBonus = els.enableExtraItemBonus.checked; saveState(); renderSettings(); };
+    els.enableExtraItemBonus.onchange = () => { getCurrentActivity().enableExtraItemBonus = els.enableExtraItemBonus.checked; saveState(); renderSettings(); renderDepositButtons(); };
 
     // Deposit
     els.btnCustomDeposit.onclick = () => { const val = parseInt(els.customAmount.value); if (val) { handleDepositTrigger(val); els.customAmount.value = ''; } };
@@ -1171,6 +1320,42 @@ function initEvents() {
     // Confirm Modal
     els.confirmYes.onclick = () => { els.confirmModal.style.display = 'none'; if (els.confirmModal._callback) els.confirmModal._callback(); };
     els.confirmNo.onclick = () => els.confirmModal.style.display = 'none';
+
+    // Global Tooltip Events
+    const globalTooltip = $('global-tooltip');
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('.info-tooltip-container');
+        if (target && target.dataset.tooltip) {
+            const text = target.dataset.tooltip;
+            const rect = target.getBoundingClientRect();
+
+            globalTooltip.textContent = text;
+            globalTooltip.classList.add('active');
+
+            // Position tooltip
+            const tooltipRect = globalTooltip.getBoundingClientRect();
+            let top = rect.bottom + 8;
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+
+            // Bounds check
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            if (top + tooltipRect.height > window.innerHeight - 10) {
+                top = rect.top - tooltipRect.height - 8;
+            }
+
+            globalTooltip.style.top = `${top}px`;
+            globalTooltip.style.left = `${left}px`;
+        }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+        if (e.target.closest('.info-tooltip-container')) {
+            globalTooltip.classList.remove('active');
+        }
+    });
 }
 
 function openActivityModal(mode) {

@@ -13,6 +13,8 @@
 </head>
 
 <body>
+    <!-- Global Tooltip -->
+    <div id="global-tooltip" class="global-tooltip"></div>
     <!-- Header -->
     <header id="app-header">
         <div class="header-content">
@@ -74,9 +76,8 @@
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">🎲
                                     隨機加成</h2>
-                                <div class="info-tooltip-container">
+                                <div class="info-tooltip-container" data-tooltip="儲值時將依加成範圍列出所有可能的紅鑽結果，由使用者選取實際結果">
                                     <span class="info-icon">i</span>
-                                    <div class="info-tooltip-text">儲值時將依加成範圍列出所有可能的紅鑽結果，由使用者選取實際結果</div>
                                 </div>
                             </div>
                             <label class="switch-label" style="margin-top:8px;">
@@ -110,9 +111,8 @@
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">📌
                                     固定加成</h2>
-                                <div class="info-tooltip-container">
+                                <div class="info-tooltip-container" data-tooltip="每次儲值自動套用的固定紅鑽加成比例">
                                     <span class="info-icon">i</span>
-                                    <div class="info-tooltip-text">每次儲值自動套用的固定紅鑽加成比例</div>
                                 </div>
                             </div>
                             <label class="switch-label" style="margin-top:8px;">
@@ -138,10 +138,10 @@
                         <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">💳
-                                    渠道加成</h2>
-                                <div class="info-tooltip-container">
+                                    渠道加贈</h2>
+                                <div class="info-tooltip-container"
+                                    data-tooltip="使用「信用卡」、「iPass一卡通」、「LINE Pay」儲值可額外獲得紅利加贈">
                                     <span class="info-icon">i</span>
-                                    <div class="info-tooltip-text">使用「信用卡」、「iPass一卡通」、「LINE Pay」儲值可額外獲得紅利加成</div>
                                 </div>
                             </div>
                             <label class="switch-label" style="margin-top:8px;">
@@ -166,19 +166,18 @@
                 <!-- Bonus Config (Star 3 in 1 only — merged card) -->
                 <section class="card" id="bonus-merged-card" style="display:none">
                     <div class="card-header">
-                        <h2 class="card-title" style="font-size:1.25rem;">🎁 加成設定</h2>
+                        <h2 class="card-title" style="font-size:1.25rem;">🎁 道具(點數)加成設定</h2>
                         <span class="collapse-icon">▼</span>
                     </div>
                     <div class="card-body">
                         <!-- Random Bonus -->
                         <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">
+                                <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">
                                     🎲
-                                    隨機點數加成</h2>
-                                <div class="info-tooltip-container">
+                                    隨機加成</h2>
+                                <div class="info-tooltip-container" data-tooltip="儲值時將列出所有可能的隨機加成結果供確認">
                                     <span class="info-icon">i</span>
-                                    <div class="info-tooltip-text">儲值時將列出所有可能的點數加成結果供確認</div>
                                 </div>
                             </div>
                             <label class="switch-label" style="margin-top:8px;">
@@ -207,15 +206,43 @@
 
                         <div style="border-top:1px solid rgba(255,255,255,0.07);margin:0.75rem 0;"></div>
 
+                        <!-- Fixed Bonus -->
+                        <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">
+                                    📌
+                                    固定加成</h2>
+                                <div class="info-tooltip-container" data-tooltip="每次儲值自動套用的固定加成比例">
+                                    <span class="info-icon">i</span>
+                                </div>
+                            </div>
+                            <label class="switch-label" style="margin-top:8px;">
+                                <input type="checkbox" id="enable-global-fixed-bonus">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        <div id="global-fixed-bonus-settings" class="setting-group-vertical"
+                            style="display:none;margin-top:0.5rem;">
+                            <div class="setting-row">
+                                <label for="global-fixed-bonus-rate">加成比例</label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="global-fixed-bonus-rate" class="input-field no-spin"
+                                        value="5" min="0" step="0.1">
+                                    <span class="unit">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px solid rgba(255,255,255,0.07);margin:0.75rem 0;"></div>
+
                         <!-- Channel Bonus -->
                         <div class="card-header-with-action" style="margin-bottom:0; align-items:flex-start;">
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">
+                                <h2 class="card-title" style="font-size:1.1rem; margin-bottom:0; white-space:nowrap;">
                                     💳
-                                    渠道額外加贈</h2>
-                                <div class="info-tooltip-container">
+                                    渠道加贈</h2>
+                                <div class="info-tooltip-container" data-tooltip="適用「信用卡」、「iPASS一卡通」、「LINE Pay」儲值">
                                     <span class="info-icon">i</span>
-                                    <div class="info-tooltip-text">適用「信用卡」、「iPASS一卡通」、「LINE Pay」儲值</div>
                                 </div>
                             </div>
                             <label class="switch-label" style="margin-top:8px;">
@@ -302,9 +329,8 @@
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <h2 class="card-title" style="font-size:1.25rem; margin-bottom:0; white-space:nowrap;">
                                     啟用設定</h2>
-                                <div class="info-tooltip-container">
+                                <div class="info-tooltip-container" data-tooltip="針對特定儲值金額設定額外加贈的道具數量">
                                     <span class="info-icon">i</span>
-                                    <div class="info-tooltip-text">針對特定儲值金額設定額外加贈的道具數量</div>
                                 </div>
                             </div>
                             <label class="switch-label" style="margin-top:8px;">
@@ -353,31 +379,44 @@
                         <!-- VIP row -->
                         <div class="setting-row" id="vip-level-row">
                             <label for="vip-select">VIP 等級</label>
-                            <select id="vip-select" class="input-field styled-select">
-                                <option value="0">VIP 0</option>
-                                <option value="1">VIP 1</option>
-                                <option value="2">VIP 2</option>
-                                <option value="3">VIP 3</option>
-                                <option value="4">VIP 4</option>
-                                <option value="5">VIP 5</option>
-                                <option value="6">VIP 6</option>
-                            </select>
+                            <div class="custom-select-wrapper" id="vip-select-wrapper">
+                                <div class="custom-select-display" id="vip-select-display" tabindex="0">
+                                    <span class="custom-select-text" id="vip-select-text">VIP 0</span>
+                                    <span class="custom-select-arrow">▾</span>
+                                </div>
+                                <div class="custom-select-dropdown" id="vip-select-dropdown">
+                                    <!-- Options populated by JS -->
+                                </div>
+                                <select id="vip-select" style="display:none"></select>
+                            </div>
                         </div>
                         <!-- Platform row -->
                         <div class="setting-row" id="platform-row">
                             <label for="platform-select">平台</label>
-                            <select id="platform-select" class="input-field styled-select">
-                                <option value="official">非iOS</option>
-                                <option value="ios">iOS</option>
-                            </select>
+                            <div class="custom-select-wrapper" id="platform-select-wrapper">
+                                <div class="custom-select-display" id="platform-select-display" tabindex="0">
+                                    <span class="custom-select-text" id="platform-select-text">非iOS</span>
+                                    <span class="custom-select-arrow">▾</span>
+                                </div>
+                                <div class="custom-select-dropdown" id="platform-select-dropdown">
+                                    <!-- Options populated by JS -->
+                                </div>
+                                <select id="platform-select" style="display:none"></select>
+                            </div>
                         </div>
                         <!-- 儲值項目 row (競技麻將2專用) -->
                         <div class="setting-row" id="deposit-type-row" style="display:none">
                             <label for="deposit-type-select">儲值項目</label>
-                            <select id="deposit-type-select" class="input-field styled-select">
-                                <option value="diamonds">鑽石</option>
-                                <option value="coins">金幣</option>
-                            </select>
+                            <div class="custom-select-wrapper" id="deposit-type-select-wrapper">
+                                <div class="custom-select-display" id="deposit-type-select-display" tabindex="0">
+                                    <span class="custom-select-text" id="deposit-type-select-text">鑽石</span>
+                                    <span class="custom-select-arrow">▾</span>
+                                </div>
+                                <div class="custom-select-dropdown" id="deposit-type-select-dropdown">
+                                    <!-- Options populated by JS -->
+                                </div>
+                                <select id="deposit-type-select" style="display:none"></select>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -545,7 +584,7 @@
 
                             <div class="detail-item">
                                 <div class="detail-content">
-                                    <span class="detail-label">本次加贈道具 <span class="gift-icon">🎁</span></span>
+                                    <span class="detail-label">本次獲得道具總數(包含加贈) <span class="gift-icon">🎁</span></span>
                                     <span class="detail-value" id="current-bonus-items-display">0</span>
                                 </div>
                             </div>
@@ -580,9 +619,10 @@
                                     <th>加贈財產</th>
                                     <th>本次新增<br>滿額道具</th>
                                     <th>加贈道具</th>
+                                    <th>本次獲得<br>總道具數</th>
                                     <th>累積儲值</th>
                                     <th>滿額贈<br>道具(累計)</th>
-                                    <th>總道具數</th>
+
                                 </tr>
                             </thead>
                             <tbody id="record-tbody"></tbody>
@@ -621,7 +661,7 @@
                 <div id="verify-point-options-container"
                     style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
                     <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem;"
-                        id="verify-point-label">請選擇遊戲實際顯示的冬季紅利點數結果：</div>
+                        id="verify-point-label">請選擇遊戲實際顯示的道具(點數)結果：</div>
                     <div id="verify-point-grid" class="verify-grid"></div>
                 </div>
             </div>

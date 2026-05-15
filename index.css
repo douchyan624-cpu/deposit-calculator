@@ -174,13 +174,11 @@ input[type="number"].no-spin::-webkit-outer-spin-button {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
+    border-radius: var(--radius-lg);
     padding: 1.25rem;
-    backdrop-filter: blur(12px);
     box-shadow: var(--shadow-sm);
     transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
     animation: fadeInUp 0.5s ease backwards;
-    isolation: isolate;
-    /* 防止 backdrop-filter 建立獨立堆疊上下文封鎖層級 */
 }
 
 .card:hover {
@@ -379,9 +377,9 @@ input:checked+.switch-slider:before {
     margin-bottom: 1.25rem;
     animation-delay: 0.05s;
     position: relative;
-    z-index: 200;
+    z-index: 1001;
     /* 讓下拉選單覆蓋在下方所有卡片上層 */
-    overflow: visible;
+    overflow: visible !important;
 }
 
 .activity-controls {
@@ -418,7 +416,7 @@ input:checked+.switch-slider:before {
     flex: 1;
     max-width: 360px;
     user-select: none;
-    z-index: 100;
+    z-index: 1000;
 }
 
 .custom-select-display {
@@ -473,21 +471,29 @@ input:checked+.switch-slider:before {
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(20, 18, 40, 0.97);
+    background: rgba(20, 18, 40, 0.98);
     border: 1px solid var(--accent-purple);
     border-top: none;
     border-radius: 0 0 var(--radius-md) var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    z-index: 1000;
-    max-height: 240px;
+    box-shadow: var(--shadow-lg), 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    max-height: 280px;
     overflow-y: auto;
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scaleY(0.95);
+    transform-origin: top;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(16px);
+    pointer-events: none;
+    display: block;
 }
 
 .custom-select-dropdown.open {
-    display: block;
-    animation: fadeInDown 0.18s ease;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scaleY(1);
+    pointer-events: all;
 }
 
 .custom-select-option {
@@ -678,36 +684,32 @@ select.styled-select option {
     background-color: rgba(56, 224, 255, 0.1);
 }
 
-.info-tooltip-text {
-    position: absolute;
-    top: calc(100% + 8px);
-    bottom: auto;
-    left: 50%;
-    transform: translateX(-50%) translateY(-5px);
-    background: rgba(20, 18, 40, 0.95);
-    border: 1px solid var(--border-color);
+/* --- Global Tooltip (JS driven) --- */
+.global-tooltip {
+    position: fixed;
+    background: rgba(25, 23, 48, 0.98);
+    border: 1px solid var(--accent-purple);
     color: var(--text-primary);
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 12px 16px;
+    border-radius: 10px;
     font-size: 14px;
-    font-weight: 400;
-    white-space: normal;
-    min-width: 220px;
-    max-width: 300px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    width: 260px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+    z-index: 999999;
+    pointer-events: none;
+    line-height: 1.6;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.2s ease;
-    z-index: 1000;
-    pointer-events: none;
-    line-height: 1.4;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateY(10px);
     text-align: left;
+    white-space: normal;
 }
 
-.info-tooltip-container:hover .info-tooltip-text {
+.global-tooltip.active {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
 }
 
 .input-with-unit {
@@ -1098,9 +1100,9 @@ select.styled-select option {
 }
 
 .deposit-btn .ntd-amount,
-.deposit-btn span:first-child:not(:only-child) {
+.deposit-btn .amount {
     display: block;
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: 700;
     font-family: 'Inter', var(--font-sans);
     color: var(--text-primary);
@@ -1108,9 +1110,9 @@ select.styled-select option {
 }
 
 .deposit-btn .asset-amount,
-.deposit-btn span:last-child:not(:only-child) {
+.deposit-btn .bonus-tag {
     display: block;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-muted);
     letter-spacing: 0.01em;
