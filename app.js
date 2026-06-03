@@ -1014,10 +1014,12 @@ function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 
             : 0;
 
         if (isStar3in1) {
-            // 明星三缺一：固定加成與渠道加贈顯示為「加贈道具」，且包含 1:1 的基本點數
-            const basePoints = amount;
-            const calculatedBonus = fixedBonusAssets + channelBonusAssets;
-            addRecord(amount, baseAssets, builtInBonusAssets, basePoints + extraBonusItems + calculatedBonus, currencyType, currencyUnit);
+            // 明星三缺一：只有在開啟固定加成或渠道加贈時，才將基本點數(1:1)與加成合併顯示為加贈道具
+            let points = 0;
+            if (hasFixedBonus || channelRate > 0) {
+                points = amount + fixedBonusAssets + channelBonusAssets;
+            }
+            addRecord(amount, baseAssets, builtInBonusAssets, points + extraBonusItems, currencyType, currencyUnit);
         } else {
             addRecord(amount, baseAssets, builtInBonusAssets + fixedBonusAssets + channelBonusAssets, extraBonusItems, currencyType, currencyUnit);
         }
