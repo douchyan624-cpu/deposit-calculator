@@ -419,6 +419,10 @@ input:checked+.switch-slider:before {
     z-index: 1000;
 }
 
+.custom-select-wrapper:has(.custom-select-dropdown.open) {
+    z-index: 1010;
+}
+
 .custom-select-display {
     display: flex;
     align-items: center;

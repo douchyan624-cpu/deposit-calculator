@@ -314,6 +314,7 @@ const els = {
     activitySelectDisplay: $('activity-select-display'),
     activitySelectText: $('activity-select-text'),
     activitySelectDropdown: $('activity-select-dropdown'),
+    activitySelect: $('activity-select'),
 
     btnNewActivity: $('btn-new-activity'),
     btnEditActivity: $('btn-edit-activity'),
@@ -500,6 +501,8 @@ function renderSettings() {
     const session = getCurrentSession();
     if (!activity || !session) return;
 
+    const gameInfo = GAME_VIP_DATA[activity.game];
+
     els.thresholdAmount.value = activity.threshold;
 
     // Render dynamic asset inputs
@@ -529,30 +532,31 @@ function renderSettings() {
         for (let i = 0; i <= 6; i++) vipOptions.push({ value: i.toString(), label: `VIP ${i}` });
     }
 
+    els.vipSelect.innerHTML = vipOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+    els.vipSelect.value = session.vipLevel;
     setupCustomSelect(els.vipSelectDisplay, els.vipSelectDropdown, els.vipSelectText, els.vipSelect, vipOptions, (val) => {
         session.vipLevel = val;
         saveState();
         renderDepositButtons();
     });
-    els.vipSelect.value = session.vipLevel;
     const currentVip = vipOptions.find(o => o.value === session.vipLevel.toString());
     els.vipSelectText.textContent = currentVip ? currentVip.label : (vipOptions[0] ? vipOptions[0].label : 'VIP 0');
 
     // Platform Select Setup
     if (gameInfo && gameInfo.platforms) {
+        if (!gameInfo.platforms[session.platform]) {
+            session.platform = Object.keys(gameInfo.platforms)[0];
+            saveState();
+        }
         const platOptions = Object.entries(gameInfo.platforms).map(([key, plat]) => ({ value: key, label: plat.label }));
+        els.platformSelect.innerHTML = platOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+        els.platformSelect.value = session.platform;
         setupCustomSelect(els.platformSelectDisplay, els.platformSelectDropdown, els.platformSelectText, els.platformSelect, platOptions, (val) => {
             session.platform = val;
             saveState();
             renderSettings(); // Re-render to update VIP options if platform-specific
             renderDepositButtons();
         });
-
-        if (!gameInfo.platforms[session.platform]) {
-            session.platform = Object.keys(gameInfo.platforms)[0];
-            saveState();
-        }
-        els.platformSelect.value = session.platform;
         const currentPlat = platOptions.find(o => o.value === session.platform);
         els.platformSelectText.textContent = currentPlat ? currentPlat.label : (platOptions[0] ? platOptions[0].label : '');
     }
@@ -568,12 +572,18 @@ function renderSettings() {
     }
 
     if (dtOptions.length > 0) {
+        if (!session.depositType || !dtOptions.some(o => o.value === session.depositType)) {
+            session.depositType = dtOptions[0].value;
+            saveState();
+        }
+        // Set hidden select value BEFORE setupCustomSelect so the selected class is applied correctly
+        els.depositTypeSelect.innerHTML = dtOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+        els.depositTypeSelect.value = session.depositType;
         setupCustomSelect(els.depositTypeSelectDisplay, els.depositTypeSelectDropdown, els.depositTypeSelectText, els.depositTypeSelect, dtOptions, (val) => {
             session.depositType = val;
             saveState();
-            renderDepositButtons();
+            renderAll();
         });
-        els.depositTypeSelect.value = session.depositType || dtOptions[0].value;
         const currentDt = dtOptions.find(o => o.value === els.depositTypeSelect.value);
         els.depositTypeSelectText.textContent = currentDt ? currentDt.label : dtOptions[0].label;
     }
@@ -817,7 +827,8 @@ function renderDepositButtons() {
             btn.innerHTML = `
                 ${gameABonusLabel}
                 ${extraItemLabel}
-                <span class="amount">${formatNumber(amount)}</span>
+                <span class="ntd-amount">${formatNumber(amount)} NTD</span>
+                <span class="asset-amount">${formatNumber(amount)} 紅鑽</span>
             `;
         }
 
@@ -1071,14 +1082,14 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
         let extraText = extraBonusItems > 0 ? ` (+${extraBonusItems}道具)` : '';
 
         if (isStar3in1) {
-            // 明星三缺一：顯示總點數 = 基本點數(金額) + 加成點數 + 滿額贈 + 額外道具
+            // 明星三缺一：顯示總點數 = 基本點數(金額) + 加成點數
             const basePoints = amount;
-            const displayTotal = basePoints + modalBonusAssets + milestoneItems + extraBonusItems;
+            const displayTotal = basePoints + modalBonusAssets;
             const rateLabel = channelBonusRate > 0
                 ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)${extraText}`
                 : `+${totalP}% 隨機加成${extraText}`;
             btn.innerHTML = `
-                <span class="verify-amount">${formatNumber(displayTotal)} 點數</span>
+                <span class="verify-amount">${formatNumber(displayTotal)} 點</span>
                 <span class="verify-label">${rateLabel}</span>
             `;
             btn.onclick = () => {
@@ -1094,9 +1105,12 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
                 <span class="verify-label">${rateLabel}</span>
             `;
         } else {
+            const rateLabel = channelBonusRate > 0
+                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)${extraText}`
+                : `+${totalP}% 隨機加成${extraText}`;
             btn.innerHTML = `
-                <span class="verify-amount">${formatNumber(totalAssets)}</span>
-                <span class="verify-label">+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道)${extraText}</span>
+                <span class="verify-amount">${formatNumber(totalAssets)}${currencyUnit ? ' ' + currencyUnit : ''}</span>
+                <span class="verify-label">${rateLabel}</span>
             `;
         }
         btn.onclick = () => {
