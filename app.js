@@ -1151,6 +1151,10 @@ function buildCustomSelectOptions() {
 
     if (appState.activities.length === 0) {
         els.activitySelectText.textContent = '— 請先新增活動 —';
+        els.activitySelectDisplay.onclick = (e) => {
+            e.stopPropagation();
+            alert('目前沒有活動，請先新增活動！');
+        };
     } else {
         const current = getCurrentActivity();
         els.activitySelectText.textContent = current ? current.name : '— 請選擇活動 —';
@@ -1197,13 +1201,25 @@ function initEvents() {
 
     // Modals
     els.btnNewActivity.onclick = () => openActivityModal('new');
-    els.btnEditActivity.onclick = () => openActivityModal('edit');
-    els.btnDeleteActivity.onclick = () => openConfirmModal('確定刪除此活動及其紀錄嗎？', () => {
-        appState.activities = appState.activities.filter(a => a.id !== appState.currentActivityId);
-        delete appState.sessions[appState.currentActivityId];
-        appState.currentActivityId = appState.activities.length ? appState.activities[0].id : null;
-        saveState(); renderAll();
-    });
+    els.btnEditActivity.onclick = () => {
+        if (!appState.currentActivityId || appState.activities.length === 0) {
+            alert('目前沒有活動，請先新增活動！');
+            return;
+        }
+        openActivityModal('edit');
+    };
+    els.btnDeleteActivity.onclick = () => {
+        if (!appState.currentActivityId || appState.activities.length === 0) {
+            alert('目前沒有活動，請先新增活動！');
+            return;
+        }
+        openConfirmModal('確定刪除此活動及其紀錄嗎？', () => {
+            appState.activities = appState.activities.filter(a => a.id !== appState.currentActivityId);
+            delete appState.sessions[appState.currentActivityId];
+            appState.currentActivityId = appState.activities.length ? appState.activities[0].id : null;
+            saveState(); renderAll();
+        });
+    };
 
     els.activityModalSave.onclick = () => {
         const name = els.activityNameInput.value.trim();
