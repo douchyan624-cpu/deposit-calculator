@@ -986,12 +986,13 @@ function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 
 
     // Determine which bonus system to use
     const isStar3in1 = activity.game === 'star_3_in_1';
+    const isMahjong2 = activity.game === 'mahjong2';
     const hasRandomBonus = isGameA ? activity.enableGameABonus : activity.enableGlobalBonus;
-    const hasFixedBonus = isGameA ? activity.enableGameAFixedBonus : (isStar3in1 ? activity.enableGlobalFixedBonus : false);
+    const hasFixedBonus = isGameA ? activity.enableGameAFixedBonus : ((isStar3in1 || isMahjong2) ? activity.enableGlobalFixedBonus : false);
     const fixedRate = isGameA
         ? (activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5)
-        : (isStar3in1 ? (activity.globalFixedBonusRate !== undefined ? activity.globalFixedBonusRate : 5) : 0);
-    // 渠道加成 (game_a 或 star3in1)
+        : ((isStar3in1 || isMahjong2) ? (activity.globalFixedBonusRate !== undefined ? activity.globalFixedBonusRate : 5) : 0);
+    // 渠道加成 (game_a 或 star3in1/mahjong2)
     const channelRate = isGameA
         ? (activity.enableGameAChannelBonus ? (activity.gameAChannelBonusRate !== undefined ? activity.gameAChannelBonusRate : 5) : 0)
         : (activity.enableChannelBonus ? (activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5) : 0);
@@ -1021,6 +1022,7 @@ function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 
             }
             addRecord(amount, baseAssets, builtInBonusAssets, points + extraBonusItems, currencyType, currencyUnit);
         } else {
+            // 競技麻將2 & 滿貫大亨：固定加成直接加在 bonusAssets 上
             addRecord(amount, baseAssets, builtInBonusAssets + fixedBonusAssets + channelBonusAssets, extraBonusItems, currencyType, currencyUnit);
         }
     }
@@ -1054,24 +1056,31 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
         }
     }
 
-    // Pick bonus parameters depending on game type
     let baseMin, baseMax, step, channelBonusRate;
+    let fixedPart = 0, chPart = 0;
     if (isGameA) {
         baseMin = activity.gameABonusMin !== undefined ? activity.gameABonusMin : 0;
         baseMax = activity.gameABonusMax !== undefined ? activity.gameABonusMax : 10;
         step = activity.gameABonusStep || 1;
         // 固定加成 + 渠道加成 合計為 channelBonusRate
-        const fixedPart = (activity.enableGameAFixedBonus) ? (activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5) : 0;
-        const chPart = (activity.enableGameAChannelBonus) ? (activity.gameAChannelBonusRate !== undefined ? activity.gameAChannelBonusRate : 5) : 0;
+        fixedPart = (activity.enableGameAFixedBonus) ? (activity.gameAFixedBonusRate !== undefined ? activity.gameAFixedBonusRate : 5) : 0;
+        chPart = (activity.enableGameAChannelBonus) ? (activity.gameAChannelBonusRate !== undefined ? activity.gameAChannelBonusRate : 5) : 0;
         channelBonusRate = fixedPart + chPart;
     } else {
         baseMin = activity.globalBonusMin !== undefined ? activity.globalBonusMin : 0;
         baseMax = activity.globalBonusMax !== undefined ? activity.globalBonusMax : 10;
         step = activity.globalBonusStep || 1;
-        const fixedPart = (isStar3in1 && activity.enableGlobalFixedBonus) ? (activity.globalFixedBonusRate !== undefined ? activity.globalFixedBonusRate : 5) : 0;
-        const chPart = (activity.enableChannelBonus) ? (activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5) : 0;
+        // 固定加成適用於 star3in1 與 mahjong2
+        fixedPart = ((isStar3in1 || activity.game === 'mahjong2') && activity.enableGlobalFixedBonus)
+            ? (activity.globalFixedBonusRate !== undefined ? activity.globalFixedBonusRate : 5) : 0;
+        chPart = (activity.enableChannelBonus) ? (activity.channelBonusRate !== undefined ? activity.channelBonusRate : 5) : 0;
         channelBonusRate = fixedPart + chPart;
     }
+
+    let extraRateLabels = [];
+    if (fixedPart > 0) extraRateLabels.push(`${fixedPart}%固定加成`);
+    if (chPart > 0) extraRateLabels.push(`${chPart}%渠道加贈`);
+    const extraRateText = extraRateLabels.length > 0 ? ` + ${extraRateLabels.join(' + ')}` : '';
 
     for (let p = baseMin; p <= baseMax; p += step) {
         const totalP = p + channelBonusRate;
@@ -1088,7 +1097,7 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
             const basePoints = amount;
             const displayTotal = basePoints + modalBonusAssets;
             const rateLabel = channelBonusRate > 0
-                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)${extraText}`
+                ? `+${totalP}% (${p}%隨機${extraRateText})${extraText}`
                 : `+${totalP}% 隨機加成${extraText}`;
             btn.innerHTML = `
                 <span class="verify-amount">${formatNumber(displayTotal)} 點</span>
@@ -1100,15 +1109,16 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
             };
         } else if (isGameA) {
             const rateLabel = channelBonusRate > 0
-                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)${extraText}`
+                ? `+${totalP}% (${p}%隨機${extraRateText})${extraText}`
                 : `+${totalP}% 隨機加成${extraText}`;
             btn.innerHTML = `
                 <span class="verify-amount">${formatNumber(totalAssets)} 紅鑽</span>
                 <span class="verify-label">${rateLabel}</span>
             `;
         } else {
+            // 競技麻將2：顯示含隨機+固定加成的財產結果
             const rateLabel = channelBonusRate > 0
-                ? `+${totalP}% (${p}%隨機 + ${channelBonusRate}%渠道加贈)${extraText}`
+                ? `+${totalP}% (${p}%隨機${extraRateText})${extraText}`
                 : `+${totalP}% 隨機加成${extraText}`;
             btn.innerHTML = `
                 <span class="verify-amount">${formatNumber(totalAssets)}${currencyUnit ? ' ' + currencyUnit : ''}</span>
@@ -1121,6 +1131,7 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
                 const basePoints = amount;
                 addRecord(amount, baseAssets, builtInBonusAssets, basePoints + extraBonusItems + modalBonusAssets, currencyType, currencyUnit);
             } else {
+                // 競技麻將2 & 滿貫大亨：隨機加成(含固定加成)合入 bonusAssets
                 addRecord(amount, baseAssets, builtInBonusAssets + modalBonusAssets, extraBonusItems, currencyType, currencyUnit);
             }
             closeVerificationModal();
