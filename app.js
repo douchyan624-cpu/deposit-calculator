@@ -32,7 +32,9 @@ const GAME_VIP_DATA = {
                         { amount: 2490, qty: 2860, bonus: 15, unit: '鑽石' },
                         { amount: 3290, qty: 3948, bonus: 20, unit: '鑽石' },
                         { amount: 5000, qty: 6250, bonus: 25, unit: '鑽石' },
-                        { amount: 10000, qty: 140000, bonus: 40, unit: '鑽石' }
+                        { amount: 10000, qty: 140000, bonus: 40, unit: '鑽石' },
+                        { amount: 30000, qty: 43500, bonus: 45, unit: '鑽石' },
+                        { amount: 50000, qty: 75000, bonus: 50, unit: '鑽石' }
                     ],
                     coins: [
                         { amount: 70, qty: 70000000, bonus: 0, unit: '金幣' },
@@ -795,8 +797,7 @@ function renderDepositButtons() {
                     const bonusVal = Math.floor(calcBase * (totalRate / 100));
 
                     if (isStar3in1) {
-                        const totalPoints = amount + bonusVal;
-                        extraBonusLabel = `<span class="bonus-label" style="font-size:0.8rem; padding:0.2rem 0.5rem; top:-14px; right:-12px; background:var(--accent-pink); border-color:var(--accent-pink); color:#fff; box-shadow:0 0 10px rgba(244,114,182,0.4);">${formatNumber(totalPoints)} 點數</span>`;
+                        extraBonusLabel = `<span class="bonus-label" style="font-size:0.8rem; padding:0.2rem 0.5rem; top:-14px; right:-12px; background:var(--accent-pink); border-color:var(--accent-pink); color:#fff; box-shadow:0 0 10px rgba(244,114,182,0.4);">+${formatNumber(bonusVal)} 點數</span>`;
                     } else {
                         // 競技麻將2
                         extraBonusLabel = `<span class="bonus-label" style="font-size:0.8rem; padding:0.2rem 0.5rem; top:-14px; right:-12px; background:var(--accent-pink); border-color:var(--accent-pink); color:#fff; box-shadow:0 0 10px rgba(244,114,182,0.4);">+${formatNumber(bonusVal)} ${meta.unit}</span>`;
@@ -1015,10 +1016,10 @@ function handleDepositTrigger(amount, baseAssets = amount, builtInBonusAssets = 
             : 0;
 
         if (isStar3in1) {
-            // 明星三缺一：只有在開啟固定加成或渠道加贈時，才將基本點數(1:1)與加成合併顯示為加贈道具
+            // 明星三缺一：加贈道具數只包含加成部分，不包含 1:1 的基本點數
             let points = 0;
             if (hasFixedBonus || channelRate > 0) {
-                points = amount + fixedBonusAssets + channelBonusAssets;
+                points = fixedBonusAssets + channelBonusAssets;
             }
             addRecord(amount, baseAssets, builtInBonusAssets, points + extraBonusItems, currencyType, currencyUnit);
         } else {
@@ -1104,7 +1105,7 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
                 <span class="verify-label">${rateLabel}</span>
             `;
             btn.onclick = () => {
-                addRecord(amount, baseAssets, builtInBonusAssets, basePoints + extraBonusItems + modalBonusAssets, currencyType, currencyUnit);
+                addRecord(amount, baseAssets, builtInBonusAssets, extraBonusItems + modalBonusAssets, currencyType, currencyUnit);
                 closeVerificationModal();
             };
         } else if (isGameA) {
@@ -1127,9 +1128,8 @@ function openVerificationModal(amount, baseAssets = amount, builtInBonusAssets =
         }
         btn.onclick = () => {
             if (isStar3in1) {
-                // 明星三缺一：隨機加成部分顯示為「加贈道具」，且包含 1:1 的基本點數
-                const basePoints = amount;
-                addRecord(amount, baseAssets, builtInBonusAssets, basePoints + extraBonusItems + modalBonusAssets, currencyType, currencyUnit);
+                // 明星三缺一：隨機加成部分為「加贈道具」，此處排除 1:1 的基本點數
+                addRecord(amount, baseAssets, builtInBonusAssets, extraBonusItems + modalBonusAssets, currencyType, currencyUnit);
             } else {
                 // 競技麻將2 & 滿貫大亨：隨機加成(含固定加成)合入 bonusAssets
                 addRecord(amount, baseAssets, builtInBonusAssets + modalBonusAssets, extraBonusItems, currencyType, currencyUnit);
